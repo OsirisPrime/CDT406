@@ -34,5 +34,11 @@ algorithms, hardware specifications, and testing outcomes. This includes:
   - Effective AI algorithms that accurately detect and classify grip, rest, and release states
   - Detailed documentation of design, development, and testing processes
   - Demonstration of AI algorithms' capabilities in a controlled environment
-#
+
+# **Useful stuff**
+## **Folder Structure**
+`/data/`: Contains all data. Raw data placed in `/data/raw/` and processed data in `/data/processed/`
+
+`/logs/`: Contains any logs, such as training data, loss, validation stuff like this. Useful to have if we want to present graphs of the training in the final report. 
+
 [1] https://mdh.diva-portal.org/smash/record.jsf?pid=diva2%3A946321&dswid=-6351
