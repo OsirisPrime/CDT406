@@ -48,7 +48,7 @@ pip install -r requirements.txt
 
 To verify that it worked, run: 
 ```
-src\models\example_ANN.py 
+python .\src\models\example_ANN.py
 ```
 This will give 2 warnings and then output `TensorFlow version: 2.19.0` if everything has been installed correctly. 
 
