@@ -1,0 +1,19 @@
+name: torch_proj
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pandas
+  - jupyterlab
+  - matplotlib
+  - scikit-learn
+  - pip
+  - pip:
+    - pre-commit
+    - black
+    - flake8

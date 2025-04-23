@@ -39,7 +39,7 @@ algorithms, hardware specifications, and testing outcomes. This includes:
 ## **Setup**
 Based on how I set this up using Anaconda as Python interpreter. Will assume Anaconda installed and working. 
 
-Step 1: Create new conda environment: 
+Step 1: Once inside project folder (will use environment.yml, takes a while to run) create new conda environment: 
 ```
 conda create --name EMG_proj
 ```
