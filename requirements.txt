@@ -2,3 +2,4 @@ python==3.9
 numpy~=1.23.0
 torchvision~=0.20.1
 matplotlib~=3.9.2
+//hg
