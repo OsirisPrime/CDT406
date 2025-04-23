@@ -41,4 +41,14 @@ algorithms, hardware specifications, and testing outcomes. This includes:
 
 `/logs/`: Contains any logs, such as training data, loss, validation stuff like this. Useful to have if we want to present graphs of the training in the final report. 
 
+`/models/`: Here will any models that has been trained, are getting trained, be saved. 
+
+`/notebooks/`: Any Jupyter notebooks that are part of this project goes in this folder. 
+
+`/src/`: Main folder for any code. 
+    `/src/data/`: Any coded related to the data. This includes loading and saving data, pre-processing and so on. 
+    `/src/models/`: Any code related to creating, training and evaluating models goes here. 
+    `/src/utils/`: Any code related to utility goes here. This includes path handling and other quality of life stuff. 
+    `/src/visualizations/`: Any code related to plotting or showing any kind of data goes here. 
+
 [1] https://mdh.diva-portal.org/smash/record.jsf?pid=diva2%3A946321&dswid=-6351
