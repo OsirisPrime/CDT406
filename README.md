@@ -36,6 +36,29 @@ algorithms, hardware specifications, and testing outcomes. This includes:
   - Demonstration of AI algorithms' capabilities in a controlled environment
 
 # **Useful stuff**
+## **Setup**
+Based on how I set this up using Anaconda as Python interpreter. Will assume Anaconda installed and working. 
+
+Step 1: Create new conda environment: 
+```
+conda create --name EMG_proj
+```
+
+Step 2: Activate env: 
+```
+conda activate EMG_proj
+```
+
+Step 3: Install requirement.txt: 
+```
+pip install -r /path/to/requirements.txt
+```
+Or, if already in correct folder: 
+```
+pip install -r requirements.txt
+```
+
+
 ## **Folder Structure**
 `/data/`: Contains all data. Raw data placed in `/data/raw/` and processed data in `/data/processed/`
 
