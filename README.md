@@ -46,6 +46,11 @@ Step 2: Install requirement.txt:
 pip install -r requirements.txt
 ```
 
+To verify that it worked, run: 
+```
+src\models\example_ANN.py 
+```
+This will give 2 warnings and then output `TensorFlow version: 2.19.0` if everything has been installed correctly. 
 
 ## **Folder Structure**
 `/data/`: Contains all data. Raw data placed in `/data/raw/` and processed data in `/data/processed/`
