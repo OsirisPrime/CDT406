@@ -51,4 +51,6 @@ algorithms, hardware specifications, and testing outcomes. This includes:
     `/src/utils/`: Any code related to utility goes here. This includes path handling and other quality of life stuff. 
     `/src/visualizations/`: Any code related to plotting or showing any kind of data goes here. 
 
+Feel free to add more folders as needed, just make sure to document them! 
+
 [1] https://mdh.diva-portal.org/smash/record.jsf?pid=diva2%3A946321&dswid=-6351
