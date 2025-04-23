@@ -36,7 +36,7 @@ algorithms, hardware specifications, and testing outcomes. This includes:
   - Demonstration of AI algorithms' capabilities in a controlled environment
 
 # **Useful stuff**
-## **Setup**
+## **Setup** DOESNT WORK! IGNORE FOR NOW!
 Based on how I set this up using Anaconda as Python interpreter. Will assume Anaconda installed and working. 
 
 Step 1: Once inside project folder (will use environment.yml, takes a while to run) create new conda environment: 
