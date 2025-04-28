@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from src.utils.path_utils import get_processed_data_dir
-from src.models.ANN.simpleANN import SimpleANN
+from src.models.ANN.ANN import SimpleANN
 from src.utils.model_utils import save_best_model
 
 def main():
