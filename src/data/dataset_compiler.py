@@ -10,10 +10,10 @@ from sklearn.preprocessing import StandardScaler
 
 # Parameters
 sampling_rate = 1000
-window_size = 500
+window_size = 200
 overlap = 0.5
-l_freq = 2.0
-h_freq = 150.0
+l_freq = 20.0
+h_freq = 450.0
 
 
 def preprocess_emg(data, fs):
@@ -49,14 +49,25 @@ def plot_first_four_all_together(raw_signals, preprocessed_signals, titles):
     plt.show()
 
 
-def process_emg_data(base_dir, output_dir, visualize_only=False, full_run=False):
-    import os
-    import numpy as np
-    import pandas as pd
-    from tqdm import tqdm
+# TD Feature Extraction
+def extract_td_features(data):
+    # Calculate all 10 features in one go for the given data window
+    features = [
+        np.mean(np.abs(data)),  # MAV: Mean Absolute Value
+        np.sqrt(np.mean(data**2)),  # RMS: Root Mean Square
+        np.count_nonzero(np.diff(np.sign(data)) != 0),  # ZC: Zero Crossing
+        np.count_nonzero(np.diff(np.sign(np.diff(data))) != 0),  # SSC: Slope Sign Change
+        np.sum(np.abs(np.diff(data))),  # WL: Waveform Length
+        np.var(data),  # Variance
+        np.mean((data - np.mean(data))**3) / (np.std(data)**3),  # Skewness
+        np.mean((data - np.mean(data))**4) / (np.std(data)**4),  # Kurtosis
+        np.var(data),  # H_A: Hjorth Activity (similar to variance)
+        np.sqrt(np.var(np.diff(data)) / np.var(data))  # H_M: Hjorth Mobility (difference ratio)
+    ]
+    return features
 
-    all_data = []
-    all_labels = []
+def process_emg_data(base_dir, output_dir, visualize_only=False, full_run=False):
+    all_data = []  # To hold the processed EMG data with features
     raw_signals = []
     preprocessed_signals = []
     titles = []
@@ -86,49 +97,33 @@ def process_emg_data(base_dir, output_dir, visualize_only=False, full_run=False)
                             if len(raw_signals) < 4:
                                 raw_signals.append(raw)
                                 preprocessed_signals.append(processed)
-                                titles.append(f"Subject {subject}, Sensor {i+1}, File {file}")
+                                titles.append(f"Subject {subject}, Sensor {i + 1}, File {file}")
 
                         if not visualize_only or full_run:
                             segments = create_segments(processed, window_size, overlap)
                             step = int(window_size * (1 - overlap)) if overlap else window_size
 
-                            gesture_labels = []
-                            for j in range(len(segments)):
-                                global_index = segment_counter * step
-                                if global_index <= 6000:
-                                    gesture_labels.append(0)
-                                elif global_index <= 12000:
-                                    gesture_labels.append(1)
-                                else:
-                                    gesture_labels.append(2)
-                                segment_counter += 1
-
-                            all_data.append(segments)
-                            all_labels.append(np.array(gesture_labels))
+                            for segment in segments:
+                                td_features = extract_td_features(segment)
+                                all_data.append(td_features)
 
                     except Exception as e:
                         print(f"Failed to process {file}: {e}")
             pbar.update(1)
 
     if (not visualize_only or full_run) and all_data:
-        all_data = np.vstack(all_data)
-        all_labels = np.concatenate(all_labels)
+        all_data = np.vstack(all_data)  # Concatenate all features into one array
         os.makedirs(output_dir, exist_ok=True)
 
         with tqdm(total=2, desc="Saving") as saver_bar:
-            np.savez_compressed(os.path.join(output_dir, 'emg_data.npz'), data=all_data, labels=all_labels)
+            np.savez_compressed(os.path.join(output_dir, 'X_train.npz'), data=all_data)  # Save only the features
             saver_bar.update(1)
 
-            df_data = pd.DataFrame(all_data.reshape(all_data.shape[0], -1))
-            df_labels = pd.DataFrame(all_labels, columns=["Label"])
-            df = pd.concat([df_data, df_labels], axis=1)
-            df.to_csv(os.path.join(output_dir, 'emg_data.csv'), index=False)
+            df_data = pd.DataFrame(all_data)
+            df_data.to_csv(os.path.join(output_dir, 'X_train.csv'), index=False)  # Save as CSV as well
             saver_bar.update(1)
 
         print("✅ Data processed and saved.")
-        unique, counts = np.unique(all_labels, return_counts=True)
-        print("Label distribution:", dict(zip(unique, counts)))
-
     elif (not visualize_only or full_run) and not all_data:
         print("⚠️ No data was processed.")
 
@@ -147,8 +142,8 @@ def main():
     print("3: Both visualize and process data")
     choice = input("Enter your choice (1/2/3): ")
 
-    base_dir = r"C:\Users\kimsv\OneDrive - Mälardalens universitet\Desktop\Dataset Training"
-    output_dir = r"C:\Users\kimsv\OneDrive - Mälardalens universitet\Desktop\FIN data 2"
+    base_dir = r"C:\Users\kimsv\OneDrive - Mälardalens universitet\Desktop\M6F1O1 Dataset"
+    output_dir = r"C:\Users\kimsv\OneDrive - Mälardalens universitet\Desktop\FIN data"
 
     if choice == "1":
         process_emg_data(base_dir, output_dir, visualize_only=True)
