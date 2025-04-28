@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from src.utils.path_utils import get_processed_data_dir
+from src.utils.path_utils import get_raw_data_dir
 from src.models.KNN.KNN import SimpleKNN
 
 def main():
@@ -18,7 +18,7 @@ def main():
     6. Train the model.
     """
     # Build the file path for the processed data file.
-    path = str(get_processed_data_dir()) + "/S3M6F1O1_dataset.csv"
+    path = str(get_raw_data_dir()) + "/S3M6F1O1_dataset.csv"
 
     # Load the data file
     data = pd.read_csv(path)
