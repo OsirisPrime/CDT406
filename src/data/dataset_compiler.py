@@ -67,11 +67,6 @@ def extract_td_features(data):
     return features
 
 def process_emg_data(base_dir, output_dir, visualize_only=False, full_run=False):
-    import os
-    import numpy as np
-    import pandas as pd
-    from tqdm import tqdm
-
     all_data = []  # To hold the processed EMG data with features
     raw_signals = []
     preprocessed_signals = []
