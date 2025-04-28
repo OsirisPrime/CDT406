@@ -11,10 +11,10 @@ class SimpleKNN:
            model = SimpleKNN(n_neighbors=5)
 
         2. Train the model using:
-           model.train(X_train=<training_features>, y_train=<training_labels>, X_val=None, y_val=None)
+           model.train(X_train=<training_features>, y_train=<training_labels>)
 
         3. Evaluate the model on test data:
-           loss, accuracy = model.evaluate(X_test=<test_features>, y_test=<test_labels>)
+           accuracy = model.evaluate(X_test=<test_features>, y_test=<test_labels>)
            print("Test Accuracy:", accuracy)
     """
 
