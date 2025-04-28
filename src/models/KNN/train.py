@@ -2,8 +2,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from src.utils.path_utils import get_processed_data_dir
-from src.models.ANN.ANN import SimpleANN
-from src.utils.model_utils import save_best_model
+from src.models.KNN.KNN import SimpleKNN
 
 def main():
     """
@@ -25,24 +24,22 @@ def main():
     data = npz_file['data']
     labels = npz_file['labels']
 
-    # Adjust label range from 1-28 to 0-27.
-    labels = labels - 1
-
-    # Determine the number of unique classes in the labels.
-    num_unique_labels = np.unique(labels).shape[0]
-
-    # Initialize the SimpleANN model with the input shape and number of classes.
-    model = SimpleANN(input_shape=data.shape[1], num_classes=num_unique_labels)
+    # Initialize the SimpleKNN model
+    knn = SimpleKNN(n_neighbors=5)
 
     # Split the data into 80% training and 20% validation sets.
     X_train, X_val, y_train, y_val = train_test_split(
         data, labels, test_size=0.2, random_state=42
     )
 
-    # Train the model using the training and validation datasets.
-    model.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val)
+    # Train the model using the training.
+    knn.train(X_train, y_train)
 
-    save_best_model(model, "simple_ann")
+    # Evaluate the model on validation data.
+    accuracy = knn.evaluate(X_val, y_val)
+
+    # Print the accuracy.
+    print("Validation Accuracy:", accuracy)
 
 if __name__ == "__main__":
     main()
