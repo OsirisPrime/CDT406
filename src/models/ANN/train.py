@@ -1,3 +1,4 @@
+import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 
@@ -18,29 +19,32 @@ def main():
     6. Train the model.
     """
     # Build the file path for the processed data file.
-    path = str(get_processed_data_dir()) + "/emg_data.npz"
+    path = str(get_processed_data_dir()) + "/S3M6F1O1_dataset.csv"
 
-    # Load the data file, retrieving data and labels.
-    npz_file = np.load(path)
-    data = npz_file['data']
-    labels = npz_file['labels']
-
-    # Adjust label range from 1-28 to 0-27.
-    labels = labels - 1
+    # Load the data file
+    data = pd.read_csv(path)
 
     # Determine the number of unique classes in the labels.
-    num_unique_labels = np.unique(labels).shape[0]
+    num_unique_labels = data['label'].nunique()
+
+    # Get X data and y data
+    y_data = data['label'].values
+    X_data = data.drop(columns=['label']).values
+
+    # Transform to numpy array
+    X_data = np.array(X_data)
+    y_data = np.array(y_data)
 
     # Initialize the SimpleANN model with the input shape and number of classes.
-    model = SimpleANN(input_shape=data.shape[1], num_classes=num_unique_labels)
+    model = SimpleANN(input_shape=X_data.shape[1], num_classes=num_unique_labels)
 
     # Split the data into 80% training and 20% validation sets.
     X_train, X_val, y_train, y_val = train_test_split(
-        data, labels, test_size=0.2, random_state=42
+        X_data, y_data, test_size=0.2, random_state=42
     )
 
     # Train the model using the training and validation datasets.
-    model.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val)
+    model.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, epochs=50)
 
     save_best_model(model, "simple_ann")
 

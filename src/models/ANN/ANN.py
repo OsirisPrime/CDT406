@@ -26,7 +26,9 @@ class SimpleANN:
         """
         self.model = models.Sequential([
             layers.Input(shape=(input_shape,)),
-            layers.Dense(128, activation='relu'),
+            layers.Dense(516, activation='relu'),
+            layers.Dropout(0.3),
+            layers.Dense(516, activation='relu'),
             layers.Dropout(0.3),
             layers.Dense(64, activation='relu'),
             layers.Dense(num_classes, activation='softmax')
