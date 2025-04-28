@@ -1,2 +1,6 @@
 matplotlib~=3.9.2
 tensorflow==2.19.0
+pandas==2.2.3
+mne==1.9.0
+scikit-learn==1.6.1
+tqdm==4.67.1
