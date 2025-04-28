@@ -67,3 +67,11 @@ class SimpleANN:
             Tuple containing loss and accuracy.
         """
         return self.model.evaluate(X_test, y_test, verbose=2)
+
+    def save(self, filepath, *args, **kwargs):
+        """Delegate saving to the underlying Keras model."""
+        return self.model.save(filepath, *args, **kwargs)
+
+    def load_weights(self, filepath, *args, **kwargs):
+        """Delegate loading weights to the underlying Keras model."""
+        return self.model.load_weights(filepath, *args, **kwargs)

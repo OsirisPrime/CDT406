@@ -3,6 +3,7 @@ from sklearn.model_selection import train_test_split
 
 from src.utils.path_utils import get_processed_data_dir
 from src.models.ANN.simpleANN import SimpleANN
+from src.utils.model_utils import save_best_model
 
 def main():
     """
@@ -40,6 +41,8 @@ def main():
 
     # Train the model using the training and validation datasets.
     model.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val)
+
+    save_best_model(model, "simple_ann")
 
 if __name__ == "__main__":
     main()
