@@ -7,14 +7,12 @@ from mne import create_info
 from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
 
-
 # Parameters
 sampling_rate = 1000
 window_size = 200
 overlap = 0.5
 l_freq = 20.0
 h_freq = 450.0
-
 
 def preprocess_emg(data, fs):
     info = create_info(ch_names=["EMG"], sfreq=fs, ch_types=["misc"])
