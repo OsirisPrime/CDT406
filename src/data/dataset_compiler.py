@@ -1,68 +1,85 @@
 import os
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from mne.io import RawArray
-from mne import create_info
 from tqdm import tqdm
-from sklearn.preprocessing import StandardScaler
+from mne.filter import filter_data
+from scipy.stats import zscore
+from scipy.stats import skew, kurtosis
+from scipy.signal import correlate
 
 
-# Parameters
-sampling_rate = 1000
-window_size = 500
-overlap = 0.5
-l_freq = 2.0
-h_freq = 150.0
+# Global Variables
+sample_rate = 1000      # The sample rate of the signal (Hz)
+low_freq = 20           # Bandpass filter low frequency (Hz)
+high_freq = 450         # Bandpass filter high frequency (Hz)
+window_size = 1000      # The number of samples per segment/window
+overlap_ratio = 0.5     # Overlap ratio (0 to 1)
+discard_segment = True  # Keep only full segments (True or False)
 
 
-def preprocess_emg(data, fs):
-    info = create_info(ch_names=["EMG"], sfreq=fs, ch_types=["misc"])
-    raw_data = RawArray(data[np.newaxis, :], info, verbose=False)
-    raw_data.filter(l_freq=l_freq, h_freq=h_freq, fir_design="firwin", picks="misc", verbose=False)
-    filtered = raw_data.get_data()[0]
-    scaler = StandardScaler()
-    normalized = scaler.fit_transform(filtered.reshape(-1, 1)).flatten()
-    return normalized
+# Segments the EMG data into overlapping windows.
+def segment_emg_data(data, window_size, step_size):
+    """
+    :param data: The EMG signal to segment.
+    :param window_size: The number of samples in the window.
+    :param step_size: The number of samples to skip between windows.
+    :return: A list of segments. If "discard_segment=True", only full segments
+             will be kept. Otherwise, smaller segments will be included.
+    """
 
+    num_samples = len(data)
+    num_segments = (num_samples - window_size) // step_size + 1  # Number of overlapping segments
 
-def create_segments(data, window_size, overlap):
     segments = []
-    step = int(window_size * (1 - overlap))
-    for i in range(0, len(data) - window_size, step):
-        segments.append(data[i:i + window_size])
-    return np.array(segments)
+    for i in range(num_segments):
+        start_idx = i * step_size
+        end_idx = start_idx + window_size
+
+        # Ensure the end index doesn't exceed the signal length
+        if end_idx > num_samples:
+            end_idx = num_samples
+        segment = data[start_idx:end_idx]
+
+        # If throw_segment is True, discard the segment if it's not full (i.e., shorter than window_size)
+        if discard_segment and len(segment) < window_size:
+            continue  # Discard this segment
+
+        segments.append(segment)
+    return segments
 
 
-def plot_first_four_all_together(raw_signals, preprocessed_signals, titles):
-    fig, axs = plt.subplots(4, 1, figsize=(12, 10), sharex=True)
-    for i in range(4):
-        axs[i].plot(raw_signals[i] - np.mean(raw_signals[i]), label='Raw (Zero-mean)', alpha=0.5)
-        axs[i].plot(preprocessed_signals[i], label='Preprocessed (Norm)', linewidth=1)
-        axs[i].set_title(titles[i])
-        axs[i].legend(loc='upper right')
-        axs[i].set_ylabel('Amplitude')
-        axs[i].set_xlim(0, 13000)
-        axs[i].set_ylim(-15, 15)
-    axs[-1].set_xlabel('Samples')
-    plt.tight_layout()
-    plt.show()
+# Extract 10 time-domain features from the EMG segment.
+def extract_td_features(segment):
+    mean = np.mean(segment)                         # 1. Mean
+    rms = np.sqrt(np.mean(segment ** 2))            # 2. Root Mean Square (RMS)
+    p2p = np.max(segment) - np.min(segment)         # 3. Peak-to-Peak (P2P)
+    variance = np.var(segment)                      # 4. Variance
+    skewness = skew(segment)                        # 5. Skewness
+    kurt = kurtosis(segment)                        # 6. Kurtosis
+    zcr = np.sum(np.diff(np.sign(segment)) != 0)    # 7. Zero Crossing Rate (ZCR)
+    sem = np.mean(np.abs(segment))                  # 8. Signal Envelope Mean (SEM)
+    autocorr = correlate(segment, segment, mode='full')[len(segment) - 1]   # 9. Autocorrelation (Lag 1)
+
+    # 10. Entropy
+    entropy = -np.sum(
+        np.log(np.abs(np.histogram(segment, bins=10)[0] + 1e-10)) * np.histogram(segment, bins=10)[0] / len(segment))
+
+    features = [mean, rms, p2p, variance, skewness, kurt, zcr, sem, autocorr, entropy]
+    return features
+
+# Apply bandpass filter and normalize the segment
+def filter_and_normalize(segment):
+    segment = filter_data(segment, sfreq=sample_rate, l_freq=low_freq, h_freq=high_freq, verbose=False) # Apply bandpass filter
+    segment = zscore(segment)   # Normalize using z-score
+    return segment
 
 
-def process_emg_data(base_dir, output_dir, visualize_only=False, full_run=False):
-    import os
-    import numpy as np
-    import pandas as pd
-    from tqdm import tqdm
-
-    all_data = []
-    all_labels = []
-    raw_signals = []
-    preprocessed_signals = []
-    titles = []
-
-    segment_counter = 0  # To keep global segment index
+def read_and_segment_emg(base_dir, output_dir, window, overlap):
+    all_rows = []
     subjects = range(1, 29)
+
+    # Calculate the step size for overlapping segments
+    step_size = int(window * (1 - overlap))
 
     with tqdm(total=28, desc="Subjects") as pbar:
         for subject in subjects:
@@ -72,92 +89,55 @@ def process_emg_data(base_dir, output_dir, visualize_only=False, full_run=False)
                     continue
                 files = sorted([f for f in os.listdir(cycle_folder) if os.path.isfile(os.path.join(cycle_folder, f))])
 
-                for i, file in enumerate(files):  # i used for sensor index
+                for file in files:
                     file_path = os.path.join(cycle_folder, file)
                     try:
-                        data = np.loadtxt(file_path, delimiter=',')
-                        if len(data) < window_size:
-                            continue
+                        data = np.loadtxt(file_path, delimiter=',')  # shape: (N,)
 
-                        raw = data.copy()
-                        processed = preprocess_emg(data, sampling_rate)
+                        # Segment the data
+                        segments = segment_emg_data(data, window, step_size)
 
-                        if visualize_only or full_run:
-                            if len(raw_signals) < 4:
-                                raw_signals.append(raw)
-                                preprocessed_signals.append(processed)
-                                titles.append(f"Subject {subject}, Sensor {i+1}, File {file}")
+                        for i, segment in enumerate(segments):
+                            segment = filter_and_normalize(segment) # Apply filter and normalization
+                            features = extract_td_features(segment) # Extract time-domain features
 
-                        if not visualize_only or full_run:
-                            segments = create_segments(processed, window_size, overlap)
-                            step = int(window_size * (1 - overlap)) if overlap else window_size
+                            # Assign label based on the second
+                            segment_time = (i * step_size) // 1000  # To determine the time in seconds for the label
+                            if segment_time < 5:
+                                label = 0  # Rest
+                            elif segment_time < 11:
+                                label = 1  # Hold
+                            else:
+                                label = 2  # Release
 
-                            gesture_labels = []
-                            for j in range(len(segments)):
-                                global_index = segment_counter * step
-                                if global_index <= 6000:
-                                    gesture_labels.append(0)
-                                elif global_index <= 12000:
-                                    gesture_labels.append(1)
-                                else:
-                                    gesture_labels.append(2)
-                                segment_counter += 1
-
-                            all_data.append(segments)
-                            all_labels.append(np.array(gesture_labels))
+                            # Append features and label
+                            all_rows.append(features + [label])
 
                     except Exception as e:
-                        print(f"Failed to process {file}: {e}")
+                        print(f"Failed to read {file_path}: {e}")
+
             pbar.update(1)
 
-    if (not visualize_only or full_run) and all_data:
-        all_data = np.vstack(all_data)
-        all_labels = np.concatenate(all_labels)
+    if all_rows:
         os.makedirs(output_dir, exist_ok=True)
+        df = pd.DataFrame(all_rows)
 
-        with tqdm(total=2, desc="Saving") as saver_bar:
-            np.savez_compressed(os.path.join(output_dir, 'emg_data.npz'), data=all_data, labels=all_labels)
-            saver_bar.update(1)
+        # Columns are time-domain features + label
+        feature_columns = [f"feature_{i}" for i in range(1, 11)]
+        columns = feature_columns + ["label"]
+        df.columns = columns
 
-            df_data = pd.DataFrame(all_data.reshape(all_data.shape[0], -1))
-            df_labels = pd.DataFrame(all_labels, columns=["Label"])
-            df = pd.concat([df_data, df_labels], axis=1)
-            df.to_csv(os.path.join(output_dir, 'emg_data.csv'), index=False)
-            saver_bar.update(1)
-
-        print("✅ Data processed and saved.")
-        unique, counts = np.unique(all_labels, return_counts=True)
-        print("Label distribution:", dict(zip(unique, counts)))
-
-    elif (not visualize_only or full_run) and not all_data:
-        print("⚠️ No data was processed.")
-
-    if (visualize_only or full_run) and raw_signals:
-        plot_first_four_all_together(raw_signals, preprocessed_signals, titles)
-    elif (visualize_only or full_run) and not raw_signals:
-        print("⚠️ No signals to visualize.")
-
-
+        df.to_csv(os.path.join(output_dir, 'S3M6F1O1_features_dataset.csv'), index=False)
+        print("✅ Segmented, filtered, normalized EMG data with TD features saved to CSV.")
+    else:
+        print("⚠️ No data found to save.")
 
 
 def main():
-    print("Choose an option:")
-    print("1: Visualize first 4 EMG signals (raw & preprocessed)")
-    print("2: Process and save EMG data")
-    print("3: Both visualize and process data")
-    choice = input("Enter your choice (1/2/3): ")
+    base_dir = r"C:\Users\kimsv\OneDrive - Mälardalens universitet\Desktop\S3M6F1O1 Dataset"
+    output_dir = r"C:\Users\kimsv\OneDrive - Mälardalens universitet\Desktop\Dataset"
 
-    base_dir = r"C:\Users\kimsv\OneDrive - Mälardalens universitet\Desktop\Dataset Training"
-    output_dir = r"C:\Users\kimsv\OneDrive - Mälardalens universitet\Desktop\FIN data 2"
-
-    if choice == "1":
-        process_emg_data(base_dir, output_dir, visualize_only=True)
-    elif choice == "2":
-        process_emg_data(base_dir, output_dir, visualize_only=False)
-    elif choice == "3":
-        process_emg_data(base_dir, output_dir, full_run=True)
-    else:
-        print("Invalid choice.")
+    read_and_segment_emg(base_dir, output_dir, window_size, overlap_ratio)
 
 
 if __name__ == "__main__":
