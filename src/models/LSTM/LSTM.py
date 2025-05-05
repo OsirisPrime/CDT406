@@ -1,14 +1,4 @@
-# LSTM will get a window, unprocessed.
-# It then will normalize and "filter" the data.
-# Once the data is filtered it is reshaped to fit with the LSTM layer.
-# The LSTM then iterates over the sequence of data inside the window.
-# It only requires one window to train and make predictions.
-
-import numpy as np
-from tensorflow import acosh
 from tensorflow.keras import layers, models
-from scipy.signal import butter, filtfilt
-
 
 class LSTM:
     """
@@ -38,9 +28,9 @@ class LSTM:
         """
         # Build the sequential model.
         self.model = models.Sequential([
-            layers.Input(shape=(input_shape,)),  # Accept 2D input (features,)
-            layers.Reshape((1, -1)),  # Automatically add a time‐step dimension
-            layers.Dense(32, activation='tanh'), # Based on the architecture of a paper (not sure which one yet)
+            layers.Input(shape=(input_shape,)),
+            layers.Reshape((1, -1)),
+            layers.Dense(32, activation='tanh'), # Based on the architecture of the paper
             layers.LSTM(64, unroll=True, activation='tanh'),
             layers.Dense(32, activation='tanh'),
             layers.Dense(num_classes, activation='softmax')
