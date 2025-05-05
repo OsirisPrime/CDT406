@@ -5,6 +5,7 @@
 # It only requires one window to train and make predictions.
 
 import numpy as np
+from tensorflow import acosh
 from tensorflow.keras import layers, models
 from scipy.signal import butter, filtfilt
 
@@ -32,15 +33,16 @@ class LSTM:
         Initialize the LSTM model.
 
         Parameters:
-            input_shape (tuple): The shape of the input window (time_steps, features).
+            input_shape (int): The number of time steps in the input window.
             num_classes (int): Number of classes for classification.
         """
         # Build the sequential model.
         self.model = models.Sequential([
-            layers.Input(shape=input_shape),
-            layers.Dense(32, activation='relu'), # Based on the architecture of a paper (not sure which one yet)
-            layers.LSTM(64, unroll=True),
-            layers.Dense(32, activation='relu'),
+            layers.Input(shape=(input_shape,)),  # Accept 2D input (features,)
+            layers.Reshape((1, -1)),  # Automatically add a time‐step dimension
+            layers.Dense(32, activation='tanh'), # Based on the architecture of a paper (not sure which one yet)
+            layers.LSTM(64, unroll=True, activation='tanh'),
+            layers.Dense(32, activation='tanh'),
             layers.Dense(num_classes, activation='softmax')
         ])
         self.model.compile(optimizer='adam',
