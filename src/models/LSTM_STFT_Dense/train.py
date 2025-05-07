@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from src.utils.path_utils import get_raw_data_dir
-from src.models.ANN.ANN import SimpleANN
+from src.models.LSTM_STFT_Dense.LSTM_STFT_Dense import LSTM_STFT_Dense
 from src.utils.model_utils import save_best_model
 
 def main():
@@ -35,8 +35,7 @@ def main():
     X_data = np.array(X_data)
     y_data = np.array(y_data)
 
-    # Initialize the SimpleANN model with the input shape and number of classes.
-    model = SimpleANN(input_shape=X_data.shape[1], num_classes=num_unique_labels)
+    model = LSTM_STFT_Dense(input_shape=X_data.shape[1], num_classes=num_unique_labels)
 
     # Split the data into 80% training and 20% validation sets.
     X_train, X_val, y_train, y_val = train_test_split(
@@ -44,9 +43,9 @@ def main():
     )
 
     # Train the model using the training and validation datasets.
-    model.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, epochs=50)
+    model.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, epochs=10)
 
-    save_best_model(model, "simple_ann")
+    save_best_model(model, "LSTM_test_1")
 
 if __name__ == "__main__":
     main()

@@ -3,7 +3,8 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from src.utils.path_utils import get_raw_data_dir
-from src.models.KNN.KNN import SimpleKNN
+from src.models.LSTM_STFT.LSTM_STFT import LSTM_STFT
+from src.utils.model_utils import save_best_model
 
 def main():
     """
@@ -23,6 +24,9 @@ def main():
     # Load the data file
     data = pd.read_csv(path)
 
+    # Determine the number of unique classes in the labels.
+    num_unique_labels = data['label'].nunique()
+
     # Get X data and y data
     y_data = data['label'].values
     X_data = data.drop(columns=['label']).values
@@ -31,22 +35,17 @@ def main():
     X_data = np.array(X_data)
     y_data = np.array(y_data)
 
-    # Initialize the SimpleKNN model
-    knn = SimpleKNN(n_neighbors=5)
+    model = LSTM_STFT(input_shape=X_data.shape[1], num_classes=num_unique_labels)
 
     # Split the data into 80% training and 20% validation sets.
     X_train, X_val, y_train, y_val = train_test_split(
         X_data, y_data, test_size=0.2, random_state=42
     )
 
-    # Train the model using the training.
-    knn.train(X_train, y_train)
+    # Train the model using the training and validation datasets.
+    model.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, epochs=10)
 
-    # Evaluate the model on validation data.
-    accuracy = knn.evaluate(X_val, y_val)
-
-    # Print the accuracy.
-    print("Validation Accuracy:", accuracy)
+    save_best_model(model, "LSTM_test_1")
 
 if __name__ == "__main__":
     main()
