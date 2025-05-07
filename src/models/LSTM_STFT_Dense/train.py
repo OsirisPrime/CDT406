@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from src.utils.path_utils import get_raw_data_dir
-from src.models.LSTM_with_STFT.LSTM_with_STFT import LSTM_with_STFT
+from src.models.LSTM_STFT_Dense.LSTM_STFT_Dense import LSTM_STFT_Dense
 from src.utils.model_utils import save_best_model
 
 def main():
@@ -35,7 +35,7 @@ def main():
     X_data = np.array(X_data)
     y_data = np.array(y_data)
 
-    model = LSTM_with_STFT(input_shape=X_data.shape[1], num_classes=num_unique_labels)
+    model = LSTM_STFT_Dense(input_shape=X_data.shape[1], num_classes=num_unique_labels)
 
     # Split the data into 80% training and 20% validation sets.
     X_train, X_val, y_train, y_val = train_test_split(

@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import layers, models
 
-class LSTM_with_STFT:
+class LSTM_STFT:
     """
     LSTM is a recurrent neural network model for classification.
 
@@ -41,7 +41,6 @@ class LSTM_with_STFT:
             layers.Input(shape=(input_shape,)),
             layers.Lambda(stft_layer, name='stft'),
             layers.Reshape((1, -1)),
-            layers.Dense(32, activation='tanh'), # Based on the architecture of a paper (not sure which one yet)
             layers.LSTM(64, unroll=True, activation='tanh'),
             layers.Dense(32, activation='tanh'),
             layers.Dense(num_classes, activation='softmax')
