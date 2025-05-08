@@ -31,6 +31,23 @@ def plot_learning_curves(model, metric='f1_score', plot_title='Learning Curves')
     axes[1].set_ylabel(metric.capitalize())
     axes[1].legend()
 
+    # Get final values
+    final_loss = history['loss'][-1] if 'loss' in history and len(history['loss']) > 0 else None
+    final_val_loss = history.get('val_loss', [None])[-1]
+    final_metric = history.get(metric, [None])[-1]
+    final_val_metric = history.get(f'val_{metric}', [None])[-1]
+
+    # Add text box with final values
+    textstr = (
+        f'Final Loss: {final_loss:.4f}\n'
+        f'Final Val Loss: {final_val_loss:.4f}\n'
+        f'Final {metric.capitalize()}: {final_metric:.4f}\n'
+        f'Final Val {metric.capitalize()}: {final_val_metric:.4f}'
+    )
+    plt.gcf().text(0.5, -0.05, textstr, fontsize=12, ha='center', va='top', bbox=dict(facecolor='white', alpha=0.7))
+
+    # plt.tight_layout(rect=[0, 0.05, 1, 1])
+
     plt.tight_layout()
     plt.show()
 
@@ -69,11 +86,17 @@ def plot_confusion_and_f1(model, X_val, y_val, class_names=["rest", "grip", "hol
     axes[0].set_title('Confusion Matrix')
 
     # F1 score bar plot
-    axes[1].bar(class_names, f1s, color='skyblue')
+    bars = axes[1].bar(class_names, f1s, color='skyblue')
     axes[1].set_ylim(0, 1)
     axes[1].set_title('Per-Class F1 Score')
     axes[1].set_xlabel('Class')
     axes[1].set_ylabel('F1 Score')
+
+    # Add F1 score values above bars
+    for bar, f1 in zip(bars, f1s):
+        height = bar.get_height()
+        axes[1].text(bar.get_x() + bar.get_width() / 2, height + 0.03, f'{f1:.2f}',
+                     ha='center', va='bottom', fontsize=10)
 
     plt.tight_layout()
     plt.show()
