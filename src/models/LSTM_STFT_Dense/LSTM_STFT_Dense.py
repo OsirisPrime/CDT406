@@ -46,9 +46,11 @@ class LSTM_STFT_Dense:
             layers.Dense(32, activation='tanh'),
             layers.Dense(num_classes, activation='softmax')
         ])
-        self.model.compile(optimizer='adam',
-                           loss='sparse_categorical_crossentropy',
-                           metrics=['accuracy'])
+        self.model.compile(
+            optimizer='adam',
+            loss='categorical_crossentropy',
+            metrics=[tf.keras.metrics.F1Score(average='macro')]
+        )
 
     def train(self, X_train, y_train, X_val, y_val, epochs=10, batch_size=32, verbose=2):
         """
