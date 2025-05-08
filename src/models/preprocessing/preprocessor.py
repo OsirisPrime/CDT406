@@ -1,38 +1,62 @@
 from scipy import signal
 import tensorflow as tf
 import numpy as np
+from scipy.signal import butter, sosfiltfilt
 
-def calibrate_pre_processor(raw_data, fs=5000, low_freq=20, high_freq=500):
-    nyquist = 0.5 * 5000
-    low = low_freq / nyquist
-    high = high_freq / nyquist
-    b, a = signal.butter(4, [low, high], btype='band')
+class SignalPreprocessor:
+    def __init__(self, low_freq=20., high_freq=500., fs=5000, order=7):
+        self.low_freq = low_freq
+        self.high_freq = high_freq
+        self.fs = fs
+        self.order = order
+        self.sos = self.butter_bandpass()
+        self.variance = 1.0  # Default, will be set in calibrate
 
-    processed_signals = []
+    def butter_bandpass(self):
+        nyq = 0.5 * self.fs
+        low = self.low_freq / nyq
+        high = self.high_freq / nyq
+        sos = butter(self.order, [low, high], btype='band', output='sos')
+        return sos
 
-    for source, group in raw_data.groupby('source'):
-        signal_array = group['measurement'].values
-        processed = pre_processor_layer(signal_array, b, a)
-        processed_signals.append(np.array(processed))
+    def butter_bandpass_filter(self, data):
+        y = sosfiltfilt(self.sos, data)
+        return y
 
-    all_processed = np.concatenate(processed_signals)
+    def calibrate(self, raw_data):
+        processed_signals = []
+        for source, group in raw_data.groupby('source'):
+            signal_array = group['measurement'].values
+            processed = self.pre_process(signal_array)
+            processed_signals.append(np.array(processed))
+        all_processed = np.concatenate(processed_signals)
+        self.variance = np.var(all_processed)
 
-    variance = np.var(all_processed)
+    def pre_process(self, x):
+        # Bandpass filter
+        x = self.butter_bandpass_filter(x)
 
-    return a, b, variance
+        # Absolute value
+        x = np.abs(x)
 
-def pre_processor_layer(x, b, a, variance=1):
+        # Moving average (window size 200, output same length)
+        window_size = 200
+        window = np.ones(window_size) / window_size
+        x = np.convolve(x, window, mode='same')
 
-    # Bandpass 20-500 Hz (also test using signal.lfilter)
-    x = signal.filtfilt(b, a, x)
+        # Normalization
+        x = (x - 0.0) / (np.sqrt(self.variance) + 1e-8)
 
-    # Absolute value
-    x = tf.abs(x)
+        return x
 
-    # Moving average 10 samples
-    x = tf.signal.frame(x, frame_length=200, frame_step=1)
-    x = tf.reduce_mean(x, axis=1)
+    def batch_pre_process(self, X):
+        """
+        Apply pre_process to each sample in a batch.
 
-    x = tf.keras.layers.Normalization(mean=0, variance=variance)(x)
+        Parameters:
+            X (np.ndarray): 2D array of shape (n_samples, window_length)
 
-    return x
+        Returns:
+            np.ndarray: Processed array of same shape
+        """
+        return np.apply_along_axis(self.pre_process, 1, X)
