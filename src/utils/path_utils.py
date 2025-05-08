@@ -18,6 +18,16 @@ def get_processed_data_dir() -> Path:
     return get_project_root() / "data" / "processed"
 
 
+def get_processed_old_data_dir() -> Path:
+    """Return the path to the processed old data directory."""
+    return get_project_root() / "data" / "processed" / "relabeled_old_dataset"
+
+
+def get_processed_fast_data_dir() -> Path:
+    """Return the path to the processed fast data directory."""
+    return get_project_root() / "data" / "processed" / "relabeled_fast_dataset"
+
+
 def get_logs_dir() -> Path:
     """Return the path to the logs directory."""
     return get_project_root() / "logs"
@@ -26,3 +36,5 @@ def get_logs_dir() -> Path:
 def get_models_dir() -> Path:
     """Return the path to the saved models directory."""
     return get_project_root() / "models"
+
+
