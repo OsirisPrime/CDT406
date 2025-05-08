@@ -20,7 +20,7 @@ class LSTM:
     """
     model_name = "LSTM"
 
-    def __init__(self, input_shape, num_classes):
+    def __init__(self, input_shape, num_classes, learning_rate=1e-3):
         """
         Initialize the LSTM model.
 
@@ -39,7 +39,7 @@ class LSTM:
             layers.Dense(num_classes, activation='softmax')
         ])
         self.model.compile(
-            optimizer='adam',
+            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
             loss='categorical_crossentropy',
             metrics=[tf.keras.metrics.F1Score(average='macro')]
         )
