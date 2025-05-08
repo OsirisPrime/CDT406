@@ -18,6 +18,7 @@ class LSTM:
         3. Evaluate the model on test data:
            loss, accuracy = model.evaluate(X_test, y_test)
     """
+    model_name = "LSTM"
 
     def __init__(self, input_shape, num_classes):
         """
@@ -92,3 +93,21 @@ class LSTM:
             filepath (str): File path from which to load model weights.
         """
         return self.model.load_weights(filepath, *args, **kwargs)
+
+    def get_model(self):
+        """
+        Get the underlying Keras model.
+
+        Returns:
+            The Keras model.
+        """
+        return self.model
+
+    def get_model_name(self):
+        """
+        Get the name of the model.
+
+        Returns:
+            str: The name of the model.
+        """
+        return self.model_name
