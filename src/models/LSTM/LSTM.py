@@ -1,5 +1,4 @@
 from tensorflow.keras import layers, models
-from src.models.preprocessing.preprocessor import pre_processor_layer
 
 class LSTM:
     """
@@ -19,7 +18,7 @@ class LSTM:
            loss, accuracy = model.evaluate(X_test, y_test)
     """
 
-    def __init__(self, input_shape, num_classes, a, b, variance):
+    def __init__(self, input_shape, num_classes):
         """
         Initialize the LSTM model.
 
@@ -27,10 +26,10 @@ class LSTM:
             input_shape (int): The number of time steps in the input window.
             num_classes (int): Number of classes for classification.
         """
+
         # Build the sequential model.
         self.model = models.Sequential([
             layers.Input(shape=(input_shape,)),
-            layers.Lambda(lambda x: pre_processor_layer(x, b, a, variance), name='pre_processor'),
             layers.Reshape((1, -1)),
             layers.Dense(32, activation='tanh'), # Based on the architecture of the paper
             layers.LSTM(64, unroll=True, activation='tanh'),
