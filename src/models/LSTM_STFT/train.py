@@ -35,6 +35,8 @@ def main():
     X_data = np.array(X_data)
     y_data = np.array(y_data)
 
+    y_data = tf.keras.utils.to_categorical(y_data, num_classes=num_unique_labels)
+
     model = LSTM_STFT(input_shape=X_data.shape[1], num_classes=num_unique_labels)
 
     # Split the data into 80% training and 20% validation sets.

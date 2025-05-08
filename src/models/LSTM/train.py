@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
+import tensorflow as tf
 
 from src.utils.path_utils import get_raw_data_dir
 from src.models.LSTM.LSTM import LSTM
@@ -35,6 +36,8 @@ def main():
     X_data = np.array(X_data)
     y_data = np.array(y_data)
 
+    y_data = tf.keras.utils.to_categorical(y_data, num_classes=num_unique_labels)
+
     # Initialize the SimpleANN model with the input shape and number of classes.
     model = LSTM(input_shape=X_data.shape[1], num_classes=num_unique_labels)
 
@@ -42,6 +45,8 @@ def main():
     X_train, X_val, y_train, y_val = train_test_split(
         X_data, y_data, test_size=0.2, random_state=42
     )
+
+
 
     # Train the model using the training and validation datasets.
     model.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, epochs=10)
