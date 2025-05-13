@@ -25,15 +25,23 @@ class LSTM:
                  num_classes,
                  learning_rate=1e-3,
                  optimizer='adam',
-                 normalization='none'):
+                 normalization='none',
+                 dropout=0.0,
+                 recurrent_dropout=0.0,
+                 act_dense='tanh',
+                 act_lstm='tanh'):
         """
         Parameters
         ----------
-        input_shape : int        – number of time steps in the window
-        num_classes : int        – #classes
-        learning_rate : float    – LR fed to optimiser
-        optimizer : {'adam','rmsprop','nadam'}
-        normalization : {'none','batch','layer'}
+        input_shape        : int      – time steps per example
+        num_classes        : int      – #classes
+        learning_rate      : float
+        optimizer          : {'adam','rmsprop','nadam'}
+        normalization      : {'none','batch','layer'}
+        dropout            : float    – 0 … 0.5; used 1) in Dropout layers, 2) in LSTM(dropout=…)
+        recurrent_dropout  : float    – 0 … 0.5; fed to LSTM(recurrent_dropout=…)
+        act_dense          : {'relu','tanh'}
+        act_lstm           : {'relu','tanh'}
         """
 
         # Build the network
@@ -41,7 +49,10 @@ class LSTM:
         net.append(layers.Input(shape=(input_shape,)))
         net.append(layers.Reshape((1, -1)))
 
-        net.append(layers.Dense(32, activation='tanh'))
+        net.append(layers.Dense(32, activation=act_dense))
+
+        if dropout > 0:
+            net.append(layers.Dropout(dropout))
 
         # optional normalisation
         if normalization == 'batch':
@@ -49,8 +60,16 @@ class LSTM:
         elif normalization == 'layer':
             net.append(layers.LayerNormalization())
 
-        net.append(layers.LSTM(16, unroll=True, activation='tanh'))
-        net.append(layers.Dense(32, activation='tanh'))
+        net.append(layers.LSTM(16,
+                        activation=act_lstm,
+                        unroll=True,
+                        recurrent_dropout=recurrent_dropout))
+
+        net.append(layers.Dense(32, activation=act_dense))
+
+        if dropout > 0:
+            net.append(layers.Dropout(dropout))
+
         net.append(layers.Dense(num_classes, activation='softmax'))
 
         self.model = models.Sequential(net)
