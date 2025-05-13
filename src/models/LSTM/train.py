@@ -1,57 +1,132 @@
-import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+import pandas as pd
 import tensorflow as tf
+import keras_tuner as kt
 
-from src.utils.path_utils import get_raw_data_dir
+from src.data.data_helper import get_raw_data_as_dataframe, segement_data
+from src.models.preprocessing.preprocessor import SignalPreprocessor
 from src.models.LSTM.LSTM import LSTM
-from src.utils.model_utils import save_best_model
+from src.utils.path_utils import get_models_dir
 
-def main():
-    """
-    Main function to load, preprocess, split, and train the ANN model.
+# -------------------------- Data loading & preprocessing --------------------------
 
-    Steps:
-    1. Load data from an .npz file.
-    2. Adjust label values by decreasing each by 1.
-    3. Determine the unique number of label classes.
-    4. Initialize the SimpleANN model.
-    5. Split the data into training and validation sets.
-    6. Train the model.
-    """
-    # Build the file path for the processed data file.
-    path = str(get_raw_data_dir()) + "/S3M6F1O1_dataset.csv"
+def get_training_data():
+    # 1) load raw train/val split
+    raw_train, raw_val = get_raw_data_as_dataframe(validation_subjects=(1, 2))
 
-    # Load the data file
-    data = pd.read_csv(path)
+    # 2) build and calibrate filter
+    pre_processor = SignalPreprocessor(low_freq=20.0,
+                                       high_freq=500.0,
+                                       fs=5000.0,
+                                       order=7)
+    pre_processor.calibrate(raw_train)
 
-    # Determine the number of unique classes in the labels.
-    num_unique_labels = data['label'].nunique()
+    # 3) segment into windows
+    window_length = 200 * 5   # 200 seconds × 5 kHz = samples
+    overlap       = 50  * 5
+    seg_train = segement_data(raw_train, window_length=window_length, overlap=overlap)
+    seg_val   = segement_data(raw_val,   window_length=window_length, overlap=overlap)
 
-    # Get X data and y data
-    y_data = data['label'].values
-    X_data = data.drop(columns=['label']).values
+    # 4) one-hot encode labels
+    all_labels = pd.concat([seg_train['label'], seg_val['label']])
+    num_classes = all_labels.nunique()
+    y_train = tf.keras.utils.to_categorical(seg_train['label'], num_classes)
+    y_val   = tf.keras.utils.to_categorical(seg_val['label'],   num_classes)
 
-    # Transform to numpy array
-    X_data = np.array(X_data)
-    y_data = np.array(y_data)
+    # 5) stack windows, apply preprocessing
+    X_train = np.stack(seg_train.drop(columns=['label','source'])['window_data'].values)
+    X_val   = np.stack(seg_val.drop(columns=['label','source'])['window_data'].values)
+    X_train = pre_processor.batch_pre_process(X_train)
+    X_val   = pre_processor.batch_pre_process(X_val)
 
-    y_data = tf.keras.utils.to_categorical(y_data, num_classes=num_unique_labels)
+    input_shape = X_train.shape[1:]
+    return X_train, y_train, X_val, y_val, num_classes, input_shape
 
-    # Initialize the SimpleANN model with the input shape and number of classes.
-    model = LSTM(input_shape=X_data.shape[1], num_classes=num_unique_labels)
+# -------------------------- HyperModel definition --------------------------
 
-    # Split the data into 80% training and 20% validation sets.
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_data, y_data, test_size=0.2, random_state=42
-    )
+class LSTMHyperModel(kt.HyperModel):
+    def __init__(self, input_shape, num_classes):
+        self.input_shape = input_shape
+        self.num_classes = num_classes
 
+    def build(self, hp):
+        lr    = hp.Float('learning_rate', 1e-5, 5e-2, sampling='log')
+        opt   = hp.Choice('optimizer', ['adam', 'rmsprop', 'nadam'])
+        norm  = hp.Choice('normalization', ['none', 'batch', 'layer'])
+        drop  = hp.Float('dropout', 0.0, 0.5, step=0.1)
+        rdrop = hp.Float('recurrent_dropout', 0.0, 0.5, step=0.1)
+        ad    = hp.Choice('act_dense', ['tanh', 'relu'])
+        al    = hp.Choice('act_lstm',  ['tanh', 'relu'])
+        hp.Choice('batch_size', [32, 64, 128, 256, 512])
 
+        model = LSTM(input_shape=self.input_shape,
+                     num_classes=self.num_classes,
+                     learning_rate=lr,
+                     optimizer=opt,
+                     normalization=norm,
+                     dropout=drop,
+                     recurrent_dropout=rdrop,
+                     act_dense=ad,
+                     act_lstm=al).get_model()
+        return model
 
-    # Train the model using the training and validation datasets.
-    model.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, epochs=10)
+    def fit(self, hp, model, X, y, validation_data, **kwargs):
+        batch_size = hp.get('batch_size')
+        return model.fit(
+            X, y,
+            validation_data=validation_data,
+            batch_size=batch_size,
+            epochs=kwargs.get('epochs', 10),
+            verbose=2
+        )
 
-    save_best_model(model, "LSTM_test_1")
+# -------------------------- Script entry point --------------------------
 
 if __name__ == "__main__":
-    main()
+    # 1) Prepare data
+    X_train, y_train, X_val, y_val, num_classes, input_shape = get_training_data()
+
+    # 2) Early stopping on validation F1
+    stop_early = tf.keras.callbacks.EarlyStopping(
+        monitor='val_f1_score',
+        mode='max',
+        patience=5,
+        restore_best_weights=True
+    )
+
+    # 3) Build the tuner
+    hypermodel = LSTMHyperModel(input_shape, num_classes)
+    model_dir  = get_models_dir() / "LSTM_search"
+    tuner = kt.BayesianOptimization(
+        hypermodel,
+        objective=kt.Objective("val_f1_score", direction="max"),
+        max_trials=50,
+        directory=str(model_dir),
+        project_name="baseline_v2",
+        overwrite=True
+    )
+
+    # 4) Run hyperparameter search
+    tuner.search(
+        X_train, y_train,
+        validation_data=(X_val, y_val),
+        epochs=30,
+        callbacks=[stop_early],
+        verbose=2
+    )
+
+    # 5) Fetch and print the best result
+    best_hp    = tuner.get_best_hyperparameters(1)[0]
+    best_trial = tuner.oracle.get_best_trials(1)[0]
+    best_f1    = best_trial.metrics.get_best_value('val_f1_score')
+
+    print("\n--- Hyperparameter search complete ---")
+    print(f"Best val_f1_score       = {best_f1:.4f}")
+    print(f"learning_rate           = {best_hp.get('learning_rate')}")
+    print(f"optimizer               = {best_hp.get('optimizer')}")
+    print(f"normalization           = {best_hp.get('normalization')}")
+    print(f"batch_size              = {best_hp.get('batch_size')}")
+    print(f"dropout                 = {best_hp.get('dropout')}")
+    print(f"recurrent_dropout       = {best_hp.get('recurrent_dropout')}")
+    print(f"act_dense               = {best_hp.get('act_dense')}")
+    print(f"act_lstm                = {best_hp.get('act_lstm')}")
