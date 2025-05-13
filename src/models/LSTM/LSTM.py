@@ -20,29 +20,61 @@ class LSTM:
     """
     model_name = "LSTM"
 
-    def __init__(self, input_shape, num_classes, learning_rate=1e-3):
+    def __init__(self,
+                 input_shape,
+                 num_classes,
+                 learning_rate=1e-3,
+                 optimizer='adam',
+                 normalization='none'):
         """
-        Initialize the LSTM model.
-
-        Parameters:
-            input_shape (int): The number of time steps in the input window.
-            num_classes (int): Number of classes for classification.
+        Parameters
+        ----------
+        input_shape : int        – number of time steps in the window
+        num_classes : int        – #classes
+        learning_rate : float    – LR fed to optimiser
+        optimizer : {'adam','rmsprop','nadam'}
+        normalization : {'none','batch','layer'}
         """
 
-        # Build the sequential model.
-        self.model = models.Sequential([
-            layers.Input(shape=(input_shape,)),
-            layers.Reshape((1, -1)),
-            layers.Dense(32, activation='tanh'), # Based on the architecture of the paper
-            layers.LSTM(64, unroll=True, activation='tanh'),
-            layers.Dense(32, activation='tanh'),
-            layers.Dense(num_classes, activation='softmax')
-        ])
+        # Build the network
+        net = []
+        net.append(layers.Input(shape=(input_shape,)))
+        net.append(layers.Reshape((1, -1)))
+
+        net.append(layers.Dense(32, activation='tanh'))
+
+        # optional normalisation
+        if normalization == 'batch':
+            net.append(layers.BatchNormalization())
+        elif normalization == 'layer':
+            net.append(layers.LayerNormalization())
+
+        net.append(layers.LSTM(16, unroll=True, activation='tanh'))
+        net.append(layers.Dense(32, activation='tanh'))
+        net.append(layers.Dense(num_classes, activation='softmax'))
+
+        self.model = models.Sequential(net)
+
+        # pick optimiser
+        opt = self._get_optimizer(optimizer, learning_rate)
+
         self.model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+            optimizer=opt,
             loss='categorical_crossentropy',
             metrics=[tf.keras.metrics.F1Score(average='macro')]
         )
+
+    @staticmethod
+    def _get_optimizer(name, lr):
+        """Return an optimiser instance given name & learning-rate."""
+        name = name.lower()
+        if name == 'adam':
+            return tf.keras.optimizers.Adam(learning_rate=lr)
+        if name == 'rmsprop':
+            return tf.keras.optimizers.RMSprop(learning_rate=lr)
+        if name == 'nadam':
+            return tf.keras.optimizers.Nadam(learning_rate=lr)
+        raise ValueError(f"Unknown optimiser: {name}")
 
     def train(self, X_train, y_train, X_val, y_val, epochs=10, batch_size=32, verbose=2):
         """
