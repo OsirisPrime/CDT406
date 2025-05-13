@@ -23,7 +23,7 @@ def get_training_data(pre_processor_variant = 1):
     pre_processor.calibrate(raw_train)
 
     # 3) segment into windows
-    window_length = 200 * 5   # 200 seconds × 5 kHz = samples
+    window_length = 200 * 5   # 200 milliseconds × 5 kHz = samples
     overlap       = 50  * 5
     seg_train = segement_data(raw_train, window_length=window_length, overlap=overlap)
     seg_val   = segement_data(raw_val,   window_length=window_length, overlap=overlap)
@@ -112,7 +112,7 @@ if __name__ == "__main__":
         tuner = kt.BayesianOptimization(
             hypermodel,
             objective=kt.Objective("val_f1_score", direction="max"),
-            max_trials=3,
+            max_trials=15,
             directory=str(model_dir),
             project_name=f"pre_processor_variant_{pre_processor_variant}",
             overwrite=True
@@ -124,7 +124,7 @@ if __name__ == "__main__":
         tuner.search(
             X_train, y_train,
             validation_data=(X_val, y_val),
-            epochs=20,
+            epochs=25,
             callbacks=[stop_early],
             verbose=2
         )
