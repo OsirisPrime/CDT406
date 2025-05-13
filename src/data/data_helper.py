@@ -1,28 +1,84 @@
-import pandas as pd
 from src.utils.path_utils import get_processed_data_dir
+
 import glob
+import numpy as np
+import pandas as pd
+from collections import Counter
+from pathlib import Path
+import os
 
 
-def get_raw_data_as_dataframe():
-    expected_columns = ['time', 'measurement', 'label']
-    csv_files = glob.glob(str(get_processed_data_dir()) + "/**/*.csv", recursive=True)
-    dfs = []
+def get_raw_data_as_dataframe(validation_subjects=(1, 2)):
+    """
+    Load every CSV in  relabeled_old_dataset/ and split it into
+    training and validation sets based on the *top-level* folder
+    name (1 … 9).
+
+    Parameters
+    ----------
+    validation_subjects : iterable of int, default (1, 2)
+        The subject IDs (folder names) that should be placed
+        in the validation split.
+
+    Returns
+    -------
+    raw_train_data : pd.DataFrame
+    raw_val_data   : pd.DataFrame
+    """
+    expected_columns = ["time", "measurement", "label"]
+
+    base_dir = Path(get_processed_data_dir()) / "relabeled_old_dataset"
+    csv_files = base_dir.rglob("*.csv")
+
+    train_frames, val_frames = [], []
+
     for file in csv_files:
-        with open(file, 'r') as f:
-            first_line = f.readline().strip().split(',')
+        # -----------------------------------------------------------
+        # Figure out which subject (folder 1…9) this file comes from
+        # -----------------------------------------------------------
+        try:
+            subject_id = int(file.relative_to(base_dir).parts[0])
+        except (ValueError, IndexError):
+            # Skip any unexpected directory structure
+            continue
+
+        # -----------------------------------------------------------
+        # Read the CSV – handle optional header row
+        # -----------------------------------------------------------
+        with open(file, "r") as f:
+            first_line = f.readline().strip().split(",")
+
         if first_line == expected_columns:
             df = pd.read_csv(file)
         else:
             df = pd.read_csv(file, header=None, names=expected_columns)
-        df['source'] = file
-        dfs.append(df)
-    raw_data = pd.concat(dfs, ignore_index=True)
-    raw_data = raw_data.sort_values(['source', 'time']).reset_index(drop=True)
-    return raw_data
 
-import numpy as np
-import pandas as pd
-from collections import Counter
+        df["source"] = str(file)  # keep full path for traceability
+
+        # -----------------------------------------------------------
+        # Add to the proper split
+        # -----------------------------------------------------------
+        if subject_id in validation_subjects:
+            val_frames.append(df)
+        else:
+            train_frames.append(df)
+
+    # ---------------------------------------------------------------
+    # Concatenate & sort to replicate the original raw_data format
+    # ---------------------------------------------------------------
+    raw_train_data = (
+        pd.concat(train_frames, ignore_index=True)
+          .sort_values(["source", "time"])
+          .reset_index(drop=True)
+    )
+
+    raw_val_data = (
+        pd.concat(val_frames, ignore_index=True)
+          .sort_values(["source", "time"])
+          .reset_index(drop=True)
+    )
+
+    return raw_train_data, raw_val_data
 
 def segement_data(raw_data, window_length, overlap):
     """
