@@ -4,17 +4,18 @@ import tensorflow as tf
 from src.utils.path_utils import get_models_dir
 
 """
-    Converts the most recently modified trained Keras model (.h5) to a TFLite model.
+    Converts the most recently modified trained Keras model (.keras) to a TFLite model.
     Saves it as `model.tflite` in the current working directory.
     You can then copy this file to the BeagleBone Green.
+    (.h5) files are a legacy format that are not supported by BeagleBone Green.
 """
 
-# Get list of all .h5 models in the models directory
-model_paths = sorted(glob.glob(os.path.join(str(get_models_dir()), "**/*.h5"), recursive=False))
+# Get list of all .keras models in the models directory
+model_paths = sorted(glob.glob(os.path.join(str(get_models_dir()), "**/*.keras"), recursive=False))
 
 # Make sure there is at least one model
 if not model_paths:
-    raise FileNotFoundError("No .h5 model found in models directory.")
+    raise FileNotFoundError("No .keras model found in models directory.")
 
 # Load the first model
 trained_model = model_paths[0]
