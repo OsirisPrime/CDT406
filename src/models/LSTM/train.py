@@ -10,12 +10,13 @@ from src.utils.path_utils import get_models_dir
 
 # -------------------------- Data loading & preprocessing --------------------------
 
-def get_training_data():
+def get_training_data(pre_processor_variant = 1):
     # 1) load raw train/val split
     raw_train, raw_val = get_raw_data_as_dataframe(validation_subjects=(1, 2))
 
     # 2) build and calibrate filter
-    pre_processor = SignalPreprocessor(low_freq=20.0,
+    pre_processor = SignalPreprocessor(pre_processor_variant = pre_processor_variant,
+                                       low_freq=20.0,
                                        high_freq=500.0,
                                        fs=5000.0,
                                        order=7)
@@ -57,9 +58,6 @@ class LSTMHyperModel(kt.HyperModel):
         rdrop = hp.Float('recurrent_dropout', 0.0, 0.5, step=0.1)
         ad    = hp.Choice('act_dense', ['tanh', 'relu'])
         al    = hp.Choice('act_lstm',  ['tanh', 'relu'])
-        dense1= hp.Int('dense1', 16, 128, step=8)
-        lstm  = hp.Int('lstm', 16, 64, step=8)
-        dense2= hp.Int('dense2', 16, 128, step=8)
         hp.Choice('batch_size', [32, 64, 128, 256, 512])
 
         model = LSTM(input_shape=self.input_shape,
@@ -70,10 +68,7 @@ class LSTMHyperModel(kt.HyperModel):
                      dropout=drop,
                      recurrent_dropout=rdrop,
                      act_dense=ad,
-                     act_lstm=al,
-                     units_dense1=dense1,
-                     units_lstm=lstm,
-                     units_dense2=dense2).get_model()
+                     act_lstm=al).get_model()
         return model
 
     def fit(self, hp, model, X, y, validation_data, **kwargs):
@@ -86,60 +81,76 @@ class LSTMHyperModel(kt.HyperModel):
             verbose=2
         )
 
-# -------------------------- Script entry point --------------------------
-
 if __name__ == "__main__":
-    # 1) Prepare data
-    print("--- Loading and preprocessing data ---")
-    X_train, y_train, X_val, y_val, num_classes, input_shape = get_training_data()
-    print("--- Data loaded ---")
+    # Define the variants to test
+    pre_processor_variants = [1, 2, 3]
 
-    # 2) Early stopping on validation F1
-    stop_early = tf.keras.callbacks.EarlyStopping(
-        monitor='val_f1_score',
-        mode='max',
-        patience=5,
-        restore_best_weights=True
-    )
+    # Initialize lists to store results
+    best_f1_scores = []
+    best_hps = []
 
-    # 3) Build the tuner
-    print("--- Building the hypermodel ---")
-    hypermodel = LSTMHyperModel(input_shape, num_classes)
-    model_dir  = get_models_dir() / "LSTM_search"
-    tuner = kt.BayesianOptimization(
-        hypermodel,
-        objective=kt.Objective("val_f1_score", direction="max"),
-        max_trials=50,
-        directory=str(model_dir),
-        project_name="baseline_v2",
-        overwrite=True
-    )
-    print("--- Hypermodel built ---")
+    for pre_processor_variant in pre_processor_variants:
+        print(f"--- Testing pre_processor_variant = {pre_processor_variant} ---")
 
-    # 4) Run hyperparameter search
-    print("--- Starting hyperparameter search ---")
-    tuner.search(
-        X_train, y_train,
-        validation_data=(X_val, y_val),
-        epochs=50,
-        callbacks=[stop_early],
-        verbose=2
-    )
+        # 1) Prepare data
+        print("--- Loading and preprocessing data ---")
+        X_train, y_train, X_val, y_val, num_classes, input_shape = get_training_data(pre_processor_variant=pre_processor_variant)
+        print("--- Data loaded ---")
 
-    print("--- Hyperparameter search complete ---")
+        # 2) Early stopping on validation F1
+        stop_early = tf.keras.callbacks.EarlyStopping(
+            monitor='val_f1_score',
+            mode='max',
+            patience=5,
+            restore_best_weights=True
+        )
 
-    # 5) Fetch and print the best result
-    best_hp    = tuner.get_best_hyperparameters(1)[0]
-    best_trial = tuner.oracle.get_best_trials(1)[0]
-    best_f1    = best_trial.metrics.get_best_value('val_f1_score')
+        # 3) Build the tuner
+        print("--- Building the hypermodel ---")
+        hypermodel = LSTMHyperModel(input_shape, num_classes)
+        model_dir  = get_models_dir() / "LSTM_search"
+        tuner = kt.BayesianOptimization(
+            hypermodel,
+            objective=kt.Objective("val_f1_score", direction="max"),
+            max_trials=3,
+            directory=str(model_dir),
+            project_name=f"pre_processor_variant_{pre_processor_variant}",
+            overwrite=True
+        )
+        print("--- Hypermodel built ---")
 
-    print("\n--- Hyperparameter search complete ---")
-    print(f"Best val_f1_score       = {best_f1:.4f}")
-    print(f"learning_rate           = {best_hp.get('learning_rate')}")
-    print(f"optimizer               = {best_hp.get('optimizer')}")
-    print(f"normalization           = {best_hp.get('normalization')}")
-    print(f"batch_size              = {best_hp.get('batch_size')}")
-    print(f"dropout                 = {best_hp.get('dropout')}")
-    print(f"recurrent_dropout       = {best_hp.get('recurrent_dropout')}")
-    print(f"act_dense               = {best_hp.get('act_dense')}")
-    print(f"act_lstm                = {best_hp.get('act_lstm')}")
+        # 4) Run hyperparameter search
+        print("--- Starting hyperparameter search ---")
+        tuner.search(
+            X_train, y_train,
+            validation_data=(X_val, y_val),
+            epochs=20,
+            callbacks=[stop_early],
+            verbose=2
+        )
+
+        print("--- Hyperparameter search complete ---")
+
+        # 5) Fetch the best result
+        best_hp    = tuner.get_best_hyperparameters(1)[0]
+        best_trial = tuner.oracle.get_best_trials(1)[0]
+        best_f1    = best_trial.metrics.get_best_value('val_f1_score')
+
+        best_f1_scores.append(best_f1)
+        best_hps.append(best_hp)
+
+    # Print the best results for all variants
+    for i, pre_processor_variant in enumerate(pre_processor_variants):
+        best_f1 = best_f1_scores[i]
+        best_hp = best_hps[i]
+
+        print(f"\n--- Results for pre_processor_variant = {pre_processor_variant} ---")
+        print(f"Best val_f1_score       = {best_f1:.4f}")
+        print(f"learning_rate           = {best_hp.get('learning_rate')}")
+        print(f"optimizer               = {best_hp.get('optimizer')}")
+        print(f"normalization           = {best_hp.get('normalization')}")
+        print(f"batch_size              = {best_hp.get('batch_size')}")
+        print(f"dropout                 = {best_hp.get('dropout')}")
+        print(f"recurrent_dropout       = {best_hp.get('recurrent_dropout')}")
+        print(f"act_dense               = {best_hp.get('act_dense')}")
+        print(f"act_lstm                = {best_hp.get('act_lstm')}")
