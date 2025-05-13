@@ -39,7 +39,7 @@ def get_training_data():
     X_train = pre_processor.batch_pre_process(X_train)
     X_val   = pre_processor.batch_pre_process(X_val)
 
-    input_shape = X_train.shape[1:]
+    input_shape = X_train.shape[1]
     return X_train, y_train, X_val, y_val, num_classes, input_shape
 
 # -------------------------- HyperModel definition --------------------------
@@ -84,7 +84,9 @@ class LSTMHyperModel(kt.HyperModel):
 
 if __name__ == "__main__":
     # 1) Prepare data
+    print("--- Loading and preprocessing data ---")
     X_train, y_train, X_val, y_val, num_classes, input_shape = get_training_data()
+    print("--- Data loaded ---")
 
     # 2) Early stopping on validation F1
     stop_early = tf.keras.callbacks.EarlyStopping(
@@ -95,18 +97,21 @@ if __name__ == "__main__":
     )
 
     # 3) Build the tuner
+    print("--- Building the hypermodel ---")
     hypermodel = LSTMHyperModel(input_shape, num_classes)
     model_dir  = get_models_dir() / "LSTM_search"
     tuner = kt.BayesianOptimization(
         hypermodel,
         objective=kt.Objective("val_f1_score", direction="max"),
-        max_trials=50,
+        max_trials=5,
         directory=str(model_dir),
         project_name="baseline_v2",
         overwrite=True
     )
+    print("--- Hypermodel built ---")
 
     # 4) Run hyperparameter search
+    print("--- Starting hyperparameter search ---")
     tuner.search(
         X_train, y_train,
         validation_data=(X_val, y_val),
@@ -114,6 +119,8 @@ if __name__ == "__main__":
         callbacks=[stop_early],
         verbose=2
     )
+
+    print("--- Hyperparameter search complete ---")
 
     # 5) Fetch and print the best result
     best_hp    = tuner.get_best_hyperparameters(1)[0]
