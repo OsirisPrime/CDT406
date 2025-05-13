@@ -30,9 +30,9 @@ class LSTM:
                  recurrent_dropout=0.0,
                  act_dense='tanh',
                  act_lstm='tanh',
-                 units_dense1=16,
+                 units_dense1=32,
                  units_lstm=16,
-                 units_dense2=16):
+                 units_dense2=32):
 
         """
         Parameters
