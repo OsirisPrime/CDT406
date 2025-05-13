@@ -29,7 +29,11 @@ class LSTM:
                  dropout=0.0,
                  recurrent_dropout=0.0,
                  act_dense='tanh',
-                 act_lstm='tanh'):
+                 act_lstm='tanh',
+                 units_dense1=16,
+                 units_lstm=16,
+                 units_dense2=16):
+
         """
         Parameters
         ----------
@@ -49,7 +53,7 @@ class LSTM:
         net.append(layers.Input(shape=(input_shape,)))
         net.append(layers.Reshape((1, -1)))
 
-        net.append(layers.Dense(32, activation=act_dense))
+        net.append(layers.Dense(units_dense1, activation=act_dense))
 
         if dropout > 0:
             net.append(layers.Dropout(dropout))
@@ -60,12 +64,12 @@ class LSTM:
         elif normalization == 'layer':
             net.append(layers.LayerNormalization())
 
-        net.append(layers.LSTM(16,
-                        activation=act_lstm,
-                        unroll=True,
-                        recurrent_dropout=recurrent_dropout))
+        net.append(layers.LSTM(units_lstm,
+                               activation=act_lstm,
+                               unroll=True,
+                               recurrent_dropout=recurrent_dropout))
 
-        net.append(layers.Dense(32, activation=act_dense))
+        net.append(layers.Dense(units_dense2, activation=act_dense))
 
         if dropout > 0:
             net.append(layers.Dropout(dropout))

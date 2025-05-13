@@ -50,13 +50,16 @@ class LSTMHyperModel(kt.HyperModel):
         self.num_classes = num_classes
 
     def build(self, hp):
-        lr    = hp.Float('learning_rate', 1e-5, 5e-2, sampling='log')
+        lr    = hp.Float('learning_rate', 1e-6, 5e-3, sampling='log')
         opt   = hp.Choice('optimizer', ['adam', 'rmsprop', 'nadam'])
         norm  = hp.Choice('normalization', ['none', 'batch', 'layer'])
         drop  = hp.Float('dropout', 0.0, 0.5, step=0.1)
         rdrop = hp.Float('recurrent_dropout', 0.0, 0.5, step=0.1)
         ad    = hp.Choice('act_dense', ['tanh', 'relu'])
         al    = hp.Choice('act_lstm',  ['tanh', 'relu'])
+        dense1= hp.Int('dense1', 16, 128, step=8)
+        lstm  = hp.Int('lstm', 16, 64, step=8)
+        dense2= hp.Int('dense2', 16, 128, step=8)
         hp.Choice('batch_size', [32, 64, 128, 256, 512])
 
         model = LSTM(input_shape=self.input_shape,
@@ -67,7 +70,10 @@ class LSTMHyperModel(kt.HyperModel):
                      dropout=drop,
                      recurrent_dropout=rdrop,
                      act_dense=ad,
-                     act_lstm=al).get_model()
+                     act_lstm=al,
+                     units_dense1=dense1,
+                     units_lstm=lstm,
+                     units_dense2=dense2).get_model()
         return model
 
     def fit(self, hp, model, X, y, validation_data, **kwargs):
@@ -103,7 +109,7 @@ if __name__ == "__main__":
     tuner = kt.BayesianOptimization(
         hypermodel,
         objective=kt.Objective("val_f1_score", direction="max"),
-        max_trials=5,
+        max_trials=50,
         directory=str(model_dir),
         project_name="baseline_v2",
         overwrite=True
@@ -115,7 +121,7 @@ if __name__ == "__main__":
     tuner.search(
         X_train, y_train,
         validation_data=(X_val, y_val),
-        epochs=30,
+        epochs=50,
         callbacks=[stop_early],
         verbose=2
     )
