@@ -20,7 +20,20 @@ class LSTM_STFT:
     """
     model_name = "LSTM_STFT"
 
-    def __init__(self, input_shape, num_classes, learning_rate=1e-3):
+    def __init__(self,
+                 input_shape,
+                 num_classes,
+                 learning_rate=1e-3,
+                 optimizer='adam',
+                 normalization='none',
+                 dropout=0.0,
+                 recurrent_dropout=0.0,
+                 act_dense='tanh',
+                 act_lstm='tanh',
+                 units_dense1=32,
+                 units_lstm=16,
+                 stft_frame_length=64,
+                 stft_frame_step=32):
         """
         Initialize the LSTM model.
 
@@ -28,29 +41,64 @@ class LSTM_STFT:
             input_shape (int): The number of time steps in the input window.
             num_classes (int): Number of classes for classification.
         """
-        # STFT parameters
-        frame_length = 64
-        frame_step = 32
+        self.frame_length = stft_frame_length
+        self.frame_step = stft_frame_step
 
         def stft_layer(x):
             # x shape: (batch, time)
-            stft = tf.signal.stft(x, frame_length=frame_length, frame_step=frame_step)
+            stft = tf.signal.stft(x, frame_length=self.frame_length, frame_step=self.frame_step)
             spectrogram = tf.abs(stft)
             return spectrogram
 
-        self.model = models.Sequential([
-            layers.Input(shape=(input_shape,)),
-            layers.Lambda(stft_layer, name='stft'),
-            layers.Reshape((1, -1)),
-            layers.LSTM(64, unroll=True, activation='tanh'),
-            layers.Dense(32, activation='tanh'),
-            layers.Dense(num_classes, activation='softmax')
-        ])
+        # Build the network
+        net = []
+        net.append(layers.Input(shape=(input_shape,)))
+        net.append(layers.Reshape((1, -1)))
+
+        net.append(layers.Lambda(stft_layer, name='stft'))
+
+        net.append(layers.Reshape((1, -1)))
+
+        # optional normalisation
+        if normalization == 'batch':
+            net.append(layers.BatchNormalization())
+        elif normalization == 'layer':
+            net.append(layers.LayerNormalization())
+
+        net.append(layers.LSTM(units_lstm,
+                               activation=act_lstm,
+                               unroll=True,
+                               recurrent_dropout=recurrent_dropout))
+
+        net.append(layers.Dense(units_dense1, activation=act_dense))
+
+        if dropout > 0:
+            net.append(layers.Dropout(dropout))
+
+        net.append(layers.Dense(num_classes, activation='softmax'))
+
+        self.model = models.Sequential(net)
+
+        # pick optimiser
+        opt = self._get_optimizer(optimizer, learning_rate)
+
         self.model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+            optimizer=opt,
             loss='categorical_crossentropy',
             metrics=[tf.keras.metrics.F1Score(average='macro')]
         )
+
+    @staticmethod
+    def _get_optimizer(name, lr):
+        """Return an optimiser instance given name & learning-rate."""
+        name = name.lower()
+        if name == 'adam':
+            return tf.keras.optimizers.Adam(learning_rate=lr)
+        if name == 'rmsprop':
+            return tf.keras.optimizers.RMSprop(learning_rate=lr)
+        if name == 'nadam':
+            return tf.keras.optimizers.Nadam(learning_rate=lr)
+        raise ValueError(f"Unknown optimiser: {name}")
 
     def train(self, X_train, y_train, X_val, y_val, epochs=10, batch_size=32, verbose=2):
         """
