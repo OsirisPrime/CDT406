@@ -2,7 +2,6 @@ import json
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import keras_tuner as kt
 from pathlib import Path
 from src.data.data_helper import get_raw_data_as_dataframe, segement_data
 from src.models.preprocessing.preprocessor import SignalPreprocessor
@@ -59,7 +58,6 @@ def get_best_trial_info(trial_folder: Path):
         with open(trial_json_path, 'r') as f:
             trial_data = json.load(f)
 
-        # Extract val_f1_score
         metric = None
         if "metrics" in trial_data:
             metrics_dict = trial_data.get("metrics", {})
@@ -80,16 +78,7 @@ def get_best_trial_info(trial_folder: Path):
             best_trial_id = trial_subdir.name
 
             hp = trial_data.get("hyperparameters", trial_data.get("values", {}))
-            hp_values = hp["values"] if isinstance(hp, dict) and "values" in hp else hp
-
-            # Keep required hyperparameters for LSTM_STFT
-            required_keys = {
-                "learning_rate", "optimizer", "normalization", "dropout",
-                "recurrent_dropout", "act_dense", "act_lstm", "batch_size",
-                "stft_frame_length", "stft_frame_step"
-            }
-
-            best_hp = {k: hp_values[k] for k in required_keys if k in hp_values}
+            best_hp = hp["values"] if isinstance(hp, dict) and "values" in hp else hp
 
     return best_val_f1, best_hp, best_trial_id
 
@@ -132,9 +121,9 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
 # -------------------------- Saving --------------------------
 
 def save_best_model(model, pre_processor_variant):
-    model_dir = get_models_dir() / "LSTM_search" / f"best_model_variant_{pre_processor_variant}"
+    model_dir = get_models_dir() / "LSTM_STFT_search" / "best_LSTM_STFT_models"
     model_dir.mkdir(parents=True, exist_ok=True)
-    model.save(model_dir / f"LSTM_{pre_processor_variant}.keras")
+    model.save(model_dir / f"LSTM_STFT_variant_{pre_processor_variant}.keras")
 
 def get_results_and_save_models(folder_path, variant_folders):
     results = []
@@ -179,7 +168,7 @@ def get_results_and_save_models(folder_path, variant_folders):
 # -------------------------- Entry point --------------------------
 
 if __name__ == "__main__":
-    LSTM_search_folder_path = str(get_models_dir()) + "/LSTM_search"
+    LSTM_search_folder_path = str(get_models_dir()) + "/LSTM_STFT_search"
 
     variant_folders = {
         1: "pre_processor_variant_1",

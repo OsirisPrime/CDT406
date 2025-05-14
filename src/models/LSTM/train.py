@@ -2,7 +2,6 @@ import json
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import keras_tuner as kt
 from pathlib import Path
 from src.data.data_helper import get_raw_data_as_dataframe, segement_data
 from src.models.preprocessing.preprocessor import SignalPreprocessor
@@ -119,9 +118,9 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
 # -------------------------- Saving --------------------------
 
 def save_best_model(model, pre_processor_variant):
-    model_dir = get_models_dir() / "LSTM_search" / f"best_model_variant_{pre_processor_variant}"
+    model_dir = get_models_dir() / "LSTM_search" / "best_LSTM_models"
     model_dir.mkdir(parents=True, exist_ok=True)
-    model.save(model_dir / f"LSTM_{pre_processor_variant}.keras")
+    model.save(model_dir / f"LSTM_variant_{pre_processor_variant}.keras")
 
 def get_results_and_save_models(folder_path, variant_folders):
     results = []
