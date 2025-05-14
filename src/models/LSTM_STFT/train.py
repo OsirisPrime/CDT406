@@ -1,54 +1,192 @@
-import pandas as pd
+import json
 import numpy as np
+import pandas as pd
 import tensorflow as tf
-from sklearn.model_selection import train_test_split
-
-from src.utils.path_utils import get_raw_data_dir
+import keras_tuner as kt
+from pathlib import Path
+from src.data.data_helper import get_raw_data_as_dataframe, segement_data
+from src.models.preprocessing.preprocessor import SignalPreprocessor
 from src.models.LSTM_STFT.LSTM_STFT import LSTM_STFT
-from src.utils.model_utils import save_best_model
+from src.utils.path_utils import get_models_dir
 
-def main():
-    """
-    Main function to load, preprocess, split, and train the ANN model.
+# -------------------------- Data loading & preprocessing --------------------------
 
-    Steps:
-    1. Load data from an .npz file.
-    2. Adjust label values by decreasing each by 1.
-    3. Determine the unique number of label classes.
-    4. Initialize the SimpleANN model.
-    5. Split the data into training and validation sets.
-    6. Train the model.
-    """
-    # Build the file path for the processed data file.
-    path = str(get_raw_data_dir()) + "/S3M6F1O1_dataset.csv"
+def get_training_data(pre_processor_variant=1):
+    raw_train, raw_val = get_raw_data_as_dataframe(validation_subjects=(1, 2))
 
-    # Load the data file
-    data = pd.read_csv(path)
+    pre_processor = SignalPreprocessor(pre_processor_variant=pre_processor_variant,
+                                       low_freq=20.0,
+                                       high_freq=500.0,
+                                       fs=5000.0,
+                                       order=7)
+    pre_processor.calibrate(raw_train)
 
-    # Determine the number of unique classes in the labels.
-    num_unique_labels = data['label'].nunique()
+    window_length = 200 * 5  # 200 ms × 5 kHz
+    overlap = 50 * 5
+    seg_train = segement_data(raw_train, window_length=window_length, overlap=overlap)
+    seg_val = segement_data(raw_val, window_length=window_length, overlap=overlap)
 
-    # Get X data and y data
-    y_data = data['label'].values
-    X_data = data.drop(columns=['label']).values
+    all_labels = pd.concat([seg_train['label'], seg_val['label']])
+    num_classes = all_labels.nunique()
+    y_train = tf.keras.utils.to_categorical(seg_train['label'], num_classes)
+    y_val = tf.keras.utils.to_categorical(seg_val['label'], num_classes)
 
-    # Transform to numpy array
-    X_data = np.array(X_data)
-    y_data = np.array(y_data)
+    X_train = np.stack(seg_train.drop(columns=['label', 'source'])['window_data'].values)
+    X_val = np.stack(seg_val.drop(columns=['label', 'source'])['window_data'].values)
+    X_train = pre_processor.batch_pre_process(X_train)
+    X_val = pre_processor.batch_pre_process(X_val)
 
-    y_data = tf.keras.utils.to_categorical(y_data, num_classes=num_unique_labels)
+    input_shape = X_train.shape[1]
+    return X_train, y_train, X_val, y_val, num_classes, input_shape
 
-    model = LSTM_STFT(input_shape=X_data.shape[1], num_classes=num_unique_labels)
+# -------------------------- Trial parsing --------------------------
 
-    # Split the data into 80% training and 20% validation sets.
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_data, y_data, test_size=0.2, random_state=42
+def get_best_trial_info(trial_folder: Path):
+    best_val_f1 = -float('inf')
+    best_hp = None
+    best_trial_id = None
+
+    for trial_subdir in trial_folder.glob("trial_*"):
+        trial_json_path = None
+        for candidate_name in ["trial.json", "trial_summary.json"]:
+            candidate_path = trial_subdir / candidate_name
+            if candidate_path.exists():
+                trial_json_path = candidate_path
+                break
+        if trial_json_path is None:
+            continue
+
+        with open(trial_json_path, 'r') as f:
+            trial_data = json.load(f)
+
+        # Extract val_f1_score
+        metric = None
+        if "metrics" in trial_data:
+            metrics_dict = trial_data.get("metrics", {})
+            if "metrics" in metrics_dict and "val_f1_score" in metrics_dict["metrics"]:
+                vals = metrics_dict["metrics"]["val_f1_score"]
+                if isinstance(vals, dict) and "best" in vals:
+                    metric = vals["best"]
+                elif isinstance(vals, list) and len(vals) > 0:
+                    metric = max(v["value"][0] for v in vals if "value" in v)
+
+        if metric is None:
+            metric = trial_data.get("best_val_f1_score", trial_data.get("score", None))
+        if metric is None:
+            continue
+
+        if metric > best_val_f1:
+            best_val_f1 = metric
+            best_trial_id = trial_subdir.name
+
+            hp = trial_data.get("hyperparameters", trial_data.get("values", {}))
+            hp_values = hp["values"] if isinstance(hp, dict) and "values" in hp else hp
+
+            # Keep required hyperparameters for LSTM_STFT
+            required_keys = {
+                "learning_rate", "optimizer", "normalization", "dropout",
+                "recurrent_dropout", "act_dense", "act_lstm", "batch_size",
+                "stft_frame_length", "stft_frame_step"
+            }
+
+            best_hp = {k: hp_values[k] for k in required_keys if k in hp_values}
+
+    return best_val_f1, best_hp, best_trial_id
+
+
+# -------------------------- Training --------------------------
+
+def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_train, X_val, y_val):
+    model = LSTM_STFT(
+        input_shape=input_shape,
+        num_classes=num_classes,
+        learning_rate=best_hp['learning_rate'],
+        optimizer=best_hp['optimizer'],
+        normalization=best_hp['normalization'],
+        dropout=best_hp['dropout'],
+        recurrent_dropout=best_hp['recurrent_dropout'],
+        act_dense=best_hp['act_dense'],
+        act_lstm=best_hp['act_lstm'],
+        stft_frame_length=best_hp['stft_frame_length'],
+        stft_frame_step=best_hp['stft_frame_step']
+    ).get_model()
+
+    stop_early = tf.keras.callbacks.EarlyStopping(
+        monitor='val_f1_score',
+        mode='max',
+        patience=5,
+        restore_best_weights=True
     )
 
-    # Train the model using the training and validation datasets.
-    model.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, epochs=10)
+    model.fit(
+        X_train, y_train,
+        validation_data=(X_val, y_val),
+        batch_size=int(best_hp['batch_size']),
+        epochs=25,
+        callbacks=[stop_early],
+        verbose=2
+    )
 
-    save_best_model(model, "LSTM_STFT_test")
+    return model
+
+# -------------------------- Saving --------------------------
+
+def save_best_model(model, pre_processor_variant):
+    model_dir = get_models_dir() / "LSTM_search" / f"best_model_variant_{pre_processor_variant}"
+    model_dir.mkdir(parents=True, exist_ok=True)
+    model.save(model_dir / f"LSTM_{pre_processor_variant}.keras")
+
+def get_results_and_save_models(folder_path, variant_folders):
+    results = []
+
+    for variant_num, variant_folder in variant_folders.items():
+        print(f"\n=== Preprocessor variant {variant_num} ===")
+
+        trial_dir = Path(folder_path) / variant_folder
+        best_val_f1, best_hp, best_trial_id = get_best_trial_info(trial_dir)
+
+        print(f"Best val_f1_score: {best_val_f1:.4f}")
+        print(f"Best trial folder: {best_trial_id}")
+        print(f"[INFO] Best hyperparameters:\n{json.dumps(best_hp, indent=2)}")
+
+        if best_hp is None:
+            print("No hyperparameter data found.")
+            continue
+
+        X_train, y_train, X_val, y_val, num_classes, input_shape = get_training_data(variant_num)
+
+        model = build_and_train_best_model(
+            input_shape=input_shape,
+            num_classes=num_classes,
+            best_hp=best_hp,
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val
+        )
+
+        save_best_model(model, variant_num)
+
+        results.append({
+            "pre_processor_variant": variant_num,
+            "best_val_f1_score": best_val_f1,
+            "best_trial_id": best_trial_id,
+            "hyperparameters": best_hp
+        })
+
+    return results
+
+# -------------------------- Entry point --------------------------
 
 if __name__ == "__main__":
-    main()
+    LSTM_search_folder_path = str(get_models_dir()) + "/LSTM_search"
+
+    variant_folders = {
+        1: "pre_processor_variant_1",
+        2: "pre_processor_variant_2",
+        3: "pre_processor_variant_3",
+    }
+
+    LSTM_results = get_results_and_save_models(LSTM_search_folder_path, variant_folders)
+
+    print("\nModel training and saving complete.")
