@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
 from src.utils.path_utils import get_raw_data_dir
@@ -47,7 +48,7 @@ def main():
     # Train the model using the training and validation datasets.
     model.train(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, epochs=10)
 
-    save_best_model(model, "LSTM_test_1")
+    save_best_model(model, "LSTM_STFT_test")
 
 if __name__ == "__main__":
     main()
