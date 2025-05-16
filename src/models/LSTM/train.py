@@ -2,7 +2,10 @@ import json
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+import matplotlib.pyplot as plt
 from pathlib import Path
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score, f1_score
+
 from src.data.data_helper import get_raw_data_as_dataframe, segement_data
 from src.models.model_components.preprocessor import SignalPreprocessor
 from src.models.LSTM.LSTM import LSTM
@@ -100,7 +103,7 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
     stop_early = tf.keras.callbacks.EarlyStopping(
         monitor='val_f1_score',
         mode='max',
-        patience=5,
+        patience=10,
         restore_best_weights=True
     )
 
@@ -108,12 +111,20 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
         X_train, y_train,
         validation_data=(X_val, y_val),
         batch_size=int(best_hp['batch_size']),
-        epochs=25,
+        epochs=50,
         callbacks=[stop_early],
         verbose=2
     )
 
-    return model
+    # Predict and prepare labels for confusion matrix
+    y_val_pred_prob = model.predict(X_val)
+    y_val_pred = np.argmax(y_val_pred_prob, axis=1)
+    y_val_true = np.argmax(y_val, axis=1)
+
+    val_f1 = f1_score(y_val_true, y_val_pred, average='macro')
+    print(f"[INFO] Best val_f1_score after training: {val_f1:.4f}")
+
+    return model, y_val_true, y_val_pred, val_f1
 
 # -------------------------- Saving --------------------------
 
@@ -124,6 +135,7 @@ def save_best_model(model, pre_processor_variant):
 
 def get_results_and_save_models(folder_path, variant_folders):
     results = []
+    confusion_matrices = []
 
     for variant_num, variant_folder in variant_folders.items():
         print(f"\n=== Preprocessor variant {variant_num} ===")
@@ -131,7 +143,7 @@ def get_results_and_save_models(folder_path, variant_folders):
         trial_dir = Path(folder_path) / variant_folder
         best_val_f1, best_hp, best_trial_id = get_best_trial_info(trial_dir)
 
-        print(f"Best val_f1_score: {best_val_f1:.4f}")
+        print(f"Best val_f1_score from tuning: {best_val_f1:.4f}")
         print(f"Best trial folder: {best_trial_id}")
         print(f"[INFO] Best hyperparameters:\n{json.dumps(best_hp, indent=2)}")
 
@@ -141,7 +153,7 @@ def get_results_and_save_models(folder_path, variant_folders):
 
         X_train, y_train, X_val, y_val, num_classes, input_shape = get_training_data(variant_num)
 
-        model = build_and_train_best_model(
+        model, y_val_true, y_val_pred, val_f1 = build_and_train_best_model(
             input_shape=input_shape,
             num_classes=num_classes,
             best_hp=best_hp,
@@ -153,12 +165,42 @@ def get_results_and_save_models(folder_path, variant_folders):
 
         save_best_model(model, variant_num)
 
+        # --- Compute accuracy ---
+        acc = accuracy_score(y_val_true, y_val_pred)
+        print(f"Validation Accuracy: {acc:.4f}")
+
+        # --- Confusion matrix save ---
+        cm = confusion_matrix(y_val_true, y_val_pred)
+        confusion_matrices.append((variant_num, cm, acc))
+
         results.append({
             "pre_processor_variant": variant_num,
-            "best_val_f1_score": best_val_f1,
+            "best_val_f1_score": val_f1,
+            "validation_accuracy": acc,
             "best_trial_id": best_trial_id,
             "hyperparameters": best_hp
         })
+
+    # --- Plot all confusion matrices together ---
+    num_variants = len(confusion_matrices)
+    fig, axs = plt.subplots(1, num_variants, figsize=(6 * num_variants, 5))
+
+    if num_variants == 1:
+        axs = [axs]
+
+    class_names = ["Rest", "Grip", "Hold", "Release"]
+
+    for ax, (variant_num, cm, acc) in zip(axs, confusion_matrices):
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
+        disp.plot(cmap='Blues', ax=ax, colorbar=False)
+        ax.set_title(f'Variant {variant_num}\nAcc: {acc:.3f}')
+
+    plt.suptitle("Confusion Matrices for All Variants", fontsize=14)
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.85)
+    conf_matrix_path = get_models_dir() / "LSTM_search" / "best_LSTM_models" / "confusion_matrix.png"
+    plt.savefig(conf_matrix_path)
+    plt.show()
 
     return results
 

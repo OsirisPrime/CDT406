@@ -3,6 +3,9 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from pathlib import Path
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score, f1_score
+
 from src.data.data_helper import get_raw_data_as_dataframe, segement_data
 from src.models.model_components.preprocessor import SignalPreprocessor
 from src.models.LSTM_STFT_Dense.LSTM_STFT_Dense import LSTM_STFT_Dense
@@ -125,8 +128,12 @@ def save_best_model(model, pre_processor_variant):
     model_dir.mkdir(parents=True, exist_ok=True)
     model.save(model_dir / f"LSTM_STFT_Dense_variant_{pre_processor_variant}.keras")
 
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score, f1_score
+
 def get_results_and_save_models(folder_path, variant_folders):
     results = []
+    confusion_matrices = []
 
     for variant_num, variant_folder in variant_folders.items():
         print(f"\n=== Preprocessor variant {variant_num} ===")
@@ -156,14 +163,53 @@ def get_results_and_save_models(folder_path, variant_folders):
 
         save_best_model(model, variant_num)
 
+        # --- Predictions & Metrics ---
+        y_val_pred_prob = model.predict(X_val)
+        y_val_pred = np.argmax(y_val_pred_prob, axis=1)
+        y_val_true = np.argmax(y_val, axis=1)
+
+        acc = accuracy_score(y_val_true, y_val_pred)
+        val_f1 = f1_score(y_val_true, y_val_pred, average='macro')
+
+        print(f"Validation Accuracy: {acc:.4f}")
+        print(f"Validation F1-score: {val_f1:.4f}")
+
+        # --- Confusion matrix ---
+        cm = confusion_matrix(y_val_true, y_val_pred)
+        confusion_matrices.append((variant_num, cm, acc))
+
         results.append({
             "pre_processor_variant": variant_num,
-            "best_val_f1_score": best_val_f1,
+            "best_val_f1_score": val_f1,
+            "validation_accuracy": acc,
             "best_trial_id": best_trial_id,
             "hyperparameters": best_hp
         })
 
+    # --- Plot confusion matrices ---
+    num_variants = len(confusion_matrices)
+    fig, axs = plt.subplots(1, num_variants, figsize=(6 * num_variants, 5))
+
+    if num_variants == 1:
+        axs = [axs]
+
+    class_names = ["Rest", "Grip", "Hold", "Release"]
+
+    for ax, (variant_num, cm, acc) in zip(axs, confusion_matrices):
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
+        disp.plot(cmap='Blues', ax=ax, colorbar=False)
+        ax.set_title(f'Variant {variant_num}\nAcc: {acc:.3f}')
+
+    plt.suptitle("Confusion Matrices for All Variants (LSTM_STFT_Dense)", fontsize=14)
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.85)
+
+    conf_matrix_path = get_models_dir() / "LSTM_STFT_Dense_search" / "best_LSTM_STFT_Dense_models" / "confusion_matrix.png"
+    plt.savefig(conf_matrix_path)
+    plt.show()
+
     return results
+
 
 # -------------------------- Entry point --------------------------
 
