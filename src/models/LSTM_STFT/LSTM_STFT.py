@@ -1,6 +1,8 @@
 import tensorflow as tf
 from tensorflow.keras import layers, models
 
+from src.models.stft_layer import STFTLayer
+
 class LSTM_STFT:
     """
     LSTM is a recurrent neural network model for classification.
@@ -55,7 +57,11 @@ class LSTM_STFT:
         net.append(layers.Input(shape=(input_shape,)))
         net.append(layers.Reshape((1, -1)))
 
-        net.append(layers.Lambda(stft_layer, name='stft'))
+        net.append(STFTLayer(
+            frame_length=stft_frame_length,
+            frame_step=stft_frame_step,
+            name='stft'
+        ))
 
         net.append(layers.Reshape((1, -1)))
 
