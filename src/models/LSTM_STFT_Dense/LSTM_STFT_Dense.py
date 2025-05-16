@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import layers, models
 
-from src.models.stft_layer import STFTLayer
+from src.models.preprocessing.stft_layer import STFTLayer
 
 class LSTM_STFT_Dense:
     """
