@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from pathlib import Path
-from src.data.data_helper import get_raw_data_as_dataframe, segement_data
+from src.data.data_helper import get_raw_data_as_dataframe, segment_data
 from src.models.model_components.preprocessor import SignalPreprocessor
 from src.models.LSTM_STFT.LSTM_STFT import LSTM_STFT
 from src.utils.path_utils import get_models_dir
@@ -22,8 +22,8 @@ def get_training_data(pre_processor_variant=1):
 
     window_length = 200 * 5  # 200 ms × 5 kHz
     overlap = 50 * 5
-    seg_train = segement_data(raw_train, window_length=window_length, overlap=overlap)
-    seg_val = segement_data(raw_val, window_length=window_length, overlap=overlap)
+    seg_train = segment_data(raw_train, window_length=window_length, overlap=overlap)
+    seg_val = segment_data(raw_val, window_length=window_length, overlap=overlap)
 
     all_labels = pd.concat([seg_train['label'], seg_val['label']])
     num_classes = all_labels.nunique()

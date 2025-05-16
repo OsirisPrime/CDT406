@@ -81,7 +81,7 @@ def get_raw_data_as_dataframe(validation_subjects=(1, 2)):
 
     return raw_train_data, raw_val_data
 
-def segement_data(raw_data, window_length, overlap):
+def segment_data(raw_data, window_length, overlap):
     """
     Segments the data into overlapping windows, only keeping windows from a single source.
 
