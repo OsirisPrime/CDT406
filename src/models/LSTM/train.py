@@ -4,11 +4,11 @@ import pandas as pd
 import tensorflow as tf
 from pathlib import Path
 from src.data.data_helper import get_raw_data_as_dataframe, segement_data
-from src.models.preprocessing.preprocessor import SignalPreprocessor
+from src.models.model_components.preprocessor import SignalPreprocessor
 from src.models.LSTM.LSTM import LSTM
 from src.utils.path_utils import get_models_dir
 
-# -------------------------- Data loading & preprocessing --------------------------
+# -------------------------- Data loading & model_components --------------------------
 
 def get_training_data(pre_processor_variant=1):
     raw_train, raw_val = get_raw_data_as_dataframe(validation_subjects=(1, 2))

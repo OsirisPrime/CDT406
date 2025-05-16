@@ -4,11 +4,11 @@ import tensorflow as tf
 import keras_tuner as kt
 
 from src.data.data_helper import get_raw_data_as_dataframe, segement_data
-from src.models.preprocessing.preprocessor import SignalPreprocessor
+from src.models.model_components.preprocessor import SignalPreprocessor
 from src.models.LSTM_STFT_Dense.LSTM_STFT_Dense import LSTM_STFT_Dense
 from src.utils.path_utils import get_models_dir
 
-# -------------------------- Data loading & preprocessing --------------------------
+# -------------------------- Data loading & model_components --------------------------
 
 def get_training_data(pre_processor_variant = 1):
     # 1) load raw train/val split
@@ -34,7 +34,7 @@ def get_training_data(pre_processor_variant = 1):
     y_train = tf.keras.utils.to_categorical(seg_train['label'], num_classes)
     y_val   = tf.keras.utils.to_categorical(seg_val['label'],   num_classes)
 
-    # 5) stack windows, apply preprocessing
+    # 5) stack windows, apply model_components
     X_train = np.stack(seg_train.drop(columns=['label','source'])['window_data'].values)
     X_val   = np.stack(seg_val.drop(columns=['label','source'])['window_data'].values)
     X_train = pre_processor.batch_pre_process(X_train)
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         print(f"--- Testing pre_processor_variant = {pre_processor_variant} ---")
 
         # 1) Prepare data
-        print("--- Loading and preprocessing data ---")
+        print("--- Loading and model_components data ---")
         X_train, y_train, X_val, y_val, num_classes, input_shape = get_training_data(pre_processor_variant=pre_processor_variant)
         print("--- Data loaded ---")
 

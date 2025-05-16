@@ -20,7 +20,7 @@ def read_sensor():
     return value
 
 def preprocess(value):
-    # Example preprocessing (normalize and reshape)
+    # Example model_components (normalize and reshape)
     input_shape = input_details[0]['shape']
     input_data = np.array([[value]], dtype=np.float32)  # Adjust shape/type
     return input_data
