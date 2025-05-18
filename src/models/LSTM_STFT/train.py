@@ -6,7 +6,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score, f1_score
 
-from src.data.data_helper import get_raw_data_as_dataframe, segement_data
+from src.data.data_helper import get_raw_data_as_dataframe, segment_data
 from src.models.model_components.preprocessor import SignalPreprocessor
 from src.models.LSTM_STFT.LSTM_STFT import LSTM_STFT
 from src.utils.path_utils import get_models_dir
@@ -25,8 +25,8 @@ def get_training_data(pre_processor_variant=1):
 
     window_length = 200 * 5  # 200 ms × 5 kHz
     overlap = 50 * 5
-    seg_train = segement_data(raw_train, window_length=window_length, overlap=overlap)
-    seg_val = segement_data(raw_val, window_length=window_length, overlap=overlap)
+    seg_train = segment_data(raw_train, window_length=window_length, overlap=overlap)
+    seg_val = segment_data(raw_val, window_length=window_length, overlap=overlap)
 
     all_labels = pd.concat([seg_train['label'], seg_val['label']])
     num_classes = all_labels.nunique()
@@ -106,7 +106,7 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
     stop_early = tf.keras.callbacks.EarlyStopping(
         monitor='val_f1_score',
         mode='max',
-        patience=5,
+        patience=10,
         restore_best_weights=True
     )
 
@@ -114,7 +114,7 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
         X_train, y_train,
         validation_data=(X_val, y_val),
         batch_size=int(best_hp['batch_size']),
-        epochs=25,
+        epochs=50,
         callbacks=[stop_early],
         verbose=2
     )
