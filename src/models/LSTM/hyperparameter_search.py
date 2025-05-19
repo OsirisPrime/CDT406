@@ -20,7 +20,6 @@ def get_training_data(pre_processor_variant = 1):
                                        high_freq=500.0,
                                        fs=5000.0,
                                        order=7)
-    pre_processor.calibrate(raw_train)
 
     # 3) segment into windows
     window_length = 200 * 5   # 200 milliseconds × 5 kHz = samples
