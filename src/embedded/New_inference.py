@@ -45,7 +45,7 @@ try:
         if len(data_buffer) >= WINDOW_SIZE and (len(data_buffer) - WINDOW_SIZE) % STRIDE == 0:
             window = np.array(data_buffer[-WINDOW_SIZE:], dtype=np.float32)
 
-            pre_processor.calibrate(window)
+            pre_processor.pre_process(window)
             input_data = np.expand_dims(window, axis=0)  # Shape: (1, 1000, num_channels)
 
             # --- 3. Inference ---
