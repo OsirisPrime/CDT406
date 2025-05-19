@@ -55,7 +55,6 @@ def get_training_data_for_subject(
         fs=5000.0,
         order=7,
     )
-    preproc.calibrate(raw_train)
 
     win_len, overlap = 200 * 5, 50 * 5  # identical to the originals
     seg_train = segment_data(raw_train, window_length=win_len, overlap=overlap)
