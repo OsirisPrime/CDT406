@@ -164,7 +164,7 @@ def run_per_subject_cv():
 
             best_val_f1, best_hp, best_trial = best_trial_from_folder(variant_folder)
             if best_hp is None:
-                print(f"  • variant {pv}:  NO hyper-parameter file found – skipped")
+                print(f"  • variant {pv}:  NO hyper-parameter file found – skipped ")
                 continue
 
             print(
