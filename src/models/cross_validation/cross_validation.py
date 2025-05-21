@@ -12,31 +12,43 @@ from src.models.model_components.preprocessor import SignalPreprocessor
 from src.models.LSTM.LSTM import LSTM
 from src.models.LSTM_STFT.LSTM_STFT import LSTM_STFT
 from src.models.LSTM_STFT_Dense.LSTM_STFT_Dense import LSTM_STFT_Dense
+from src.models.ANN.ANN import ANN
+from src.models.ANN_STFT.ANN_STFT import ANN_STFT
 from src.utils.path_utils import get_models_dir
 
 PREPROC_VARIANTS = (1, 2, 3)
 
 ARCH_CONFIG: Dict[str, Dict] = {
+    "ANN_STFT": {
+        "cls": ANN_STFT,
+        "search_folder": "ANN_STFT_search",
+        "extra_hp": ["stft_frame_length", "stft_frame_step"],
+    },
+    "ANN": {
+        "cls": ANN,
+        "search_folder": "ANN_search",
+        "extra_hp": []
+    },
     "LSTM": {
         "cls": LSTM,
         "search_folder": "LSTM_search",
-        "extra_hp": []            # no STFT parameters
+        "extra_hp": ["recurrent_dropout"]            # no STFT parameters
     },
     "LSTM_STFT": {
         "cls": LSTM_STFT,
         "search_folder": "LSTM_STFT_search",
-        "extra_hp": ["stft_frame_length", "stft_frame_step"],
+        "extra_hp": ["stft_frame_length", "stft_frame_step", "recurrent_dropout"],
     },
     "LSTM_STFT_Dense": {
         "cls": LSTM_STFT_Dense,
         "search_folder": "LSTM_STFT_Dense_search",
-        "extra_hp": ["stft_frame_length", "stft_frame_step"],
+        "extra_hp": ["stft_frame_length", "stft_frame_step", "recurrent_dropout"],
     }
 }
 EARLY_STOP = tf.keras.callbacks.EarlyStopping(
     monitor="val_f1_score", mode="max", patience=5, restore_best_weights=True
 )
-EPOCHS = 25
+EPOCHS = 30
 SUBJECT_IDS = [1,2,3,4,5,6,7,8,9,10,11]
 
 def get_training_data_for_subject(
@@ -138,12 +150,13 @@ def build_model(arch_key: str, hp: Dict, input_shape, num_classes):
         optimizer=hp["optimizer"],
         normalization=hp["normalization"],
         dropout=hp["dropout"],
-        recurrent_dropout=hp["recurrent_dropout"],
-        act_dense=hp["act_dense"],
-        act_lstm=hp["act_lstm"],
+
     )
     # add STFT parameters for the two architectures that need them
-    if arch_key != "LSTM":
+    if arch_key == "LSTM" or arch_key == "LSTM_STFT" or arch_key == "LSTM_STFT_Dense":
+        kwargs_base["recurrent_dropout"] = hp["recurrent_dropout"]
+
+    if arch_key == "LSTM_STFT" or arch_key == "LSTM_STFT_Dense" or arch_key == "ANN_STFT":
         kwargs_base["stft_frame_length"] = hp["stft_frame_length"]
         kwargs_base["stft_frame_step"] = hp["stft_frame_step"]
 
