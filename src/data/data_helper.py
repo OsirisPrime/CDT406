@@ -1,12 +1,9 @@
 from src.utils.path_utils import get_processed_data_dir
 
-import glob
 import numpy as np
 import pandas as pd
 from collections import Counter
 from pathlib import Path
-import os
-
 
 def get_raw_data_as_dataframe(validation_subjects=(1, 2)):
     """
