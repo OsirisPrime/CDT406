@@ -96,16 +96,14 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
         normalization=best_hp['normalization'],
         dropout=best_hp['dropout'],
         recurrent_dropout=best_hp['recurrent_dropout'],
-        act_dense=best_hp['act_dense'],
-        act_lstm=best_hp['act_lstm'],
-        # stft_frame_length=best_hp['stft_frame_length'],
-        # stft_frame_step=best_hp['stft_frame_step']
+        stft_frame_length=best_hp['stft_frame_length'],
+        stft_frame_step=best_hp['stft_frame_step']
     ).get_model()
 
     stop_early = tf.keras.callbacks.EarlyStopping(
         monitor='val_f1_score',
         mode='max',
-        patience=5,
+        patience=10,
         restore_best_weights=True
     )
 
@@ -113,8 +111,8 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
         X_train, y_train,
         validation_data=(X_val, y_val),
         batch_size=int(best_hp['batch_size']),
-        epochs=25,
-        callbacks=[stop_early],
+        epochs=50,
+        # callbacks=[stop_early],
         verbose=2
     )
 
