@@ -20,10 +20,11 @@ def get_training_data(pre_processor_variant=1):
                                        low_freq=20.0,
                                        high_freq=500.0,
                                        fs=5000.0,
-                                       order=7)
+                                       order=7,
+                                       down_sample=True)
 
-    window_length = 200 * 5  # 200 ms × 5 kHz
-    overlap = 50 * 5
+    window_length = 200 # * 5  # 200 ms × 5 kHz
+    overlap = 50 # * 5
     seg_train = segment_data(raw_train, window_length=window_length, overlap=overlap)
     seg_val = segment_data(raw_val, window_length=window_length, overlap=overlap)
 
@@ -90,13 +91,13 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
     model = LSTM(
         input_shape=input_shape,
         num_classes=num_classes,
-        learning_rate=best_hp['learning_rate'],
-        optimizer=best_hp['optimizer'],
-        normalization=best_hp['normalization'],
-        dropout=best_hp['dropout'],
-        recurrent_dropout=best_hp['recurrent_dropout'],
-        act_dense=best_hp['act_dense'],
-        act_lstm=best_hp['act_lstm']
+        #learning_rate=best_hp['learning_rate'],
+        #optimizer=best_hp['optimizer'],
+        #normalization=best_hp['normalization'],
+        #dropout=best_hp['dropout'],
+        #recurrent_dropout=best_hp['recurrent_dropout'],
+        #act_dense=best_hp['act_dense'],
+        #act_lstm=best_hp['act_lstm']
     ).get_model()
 
     stop_early = tf.keras.callbacks.EarlyStopping(
@@ -109,10 +110,10 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
     model.fit(
         X_train, y_train,
         validation_data=(X_val, y_val),
-        batch_size=int(best_hp['batch_size']),
+        batch_size=128, # int(best_hp['batch_size']),
         epochs=50,
-        callbacks=[stop_early],
-        verbose=2
+        # callbacks=[stop_early],
+        verbose=1
     )
 
     # Predict and prepare labels for confusion matrix

@@ -50,10 +50,13 @@ class LSTM:
 
         # Build the network
         net = []
-        net.append(layers.Input(shape=(input_shape,)))
-        net.append(layers.Reshape((1, -1)))
+        # net.append(layers.Input(shape=(input_shape,)))
+        net.append(layers.Input(shape=(input_shape,1)))
 
-        net.append(layers.Dense(units_dense1, activation=act_dense))
+        # net.append(layers.Dense(units_dense1, activation=act_dense))
+        net.append(layers.Conv1D(units_dense1, kernel_size=25, strides=25, activation='relu'))
+
+        # net.append(layers.Reshape((-1, 1)))
 
         if dropout > 0:
             net.append(layers.Dropout(dropout))
