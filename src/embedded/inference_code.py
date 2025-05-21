@@ -2,11 +2,11 @@ import time
 import numpy as np
 import Adafruit_BBIO.ADC as ADC
 from tflite_interpreter import TFLiteModelInterpreter
-from src.models.model_components.preprocessor import SignalPreprocessor
+from preprocessor import SignalPreprocessor
 
 # === CONFIGURATION ===
 EMG_CHANNELS = ["P9_40"]
-SAMPLE_RATE_HZ = 5000
+SAMPLE_RATE_HZ = 1000
 WINDOW_DURATION_MS = 0.2
 STRIDE_DURATION_MS = 0.05
 pre_processor_variant = 1
@@ -32,8 +32,10 @@ print(f"- {STRIDE} sample stride ({STRIDE_DURATION_MS} ms)\n")
 pre_processor = SignalPreprocessor(pre_processor_variant=pre_processor_variant,
                                                low_freq=20.0,
                                                high_freq=500.0,
-                                               fs=5000.0,
-                                               order=7)
+                                               fs=SAMPLE_RATE_HZ,
+                                               order=7,
+                                               down_sample=False,
+                                               )
 
 try:
     while True:

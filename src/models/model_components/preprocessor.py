@@ -1,5 +1,4 @@
 from scipy import signal
-import tensorflow as tf
 import numpy as np
 from scipy.signal import butter, sosfiltfilt
 
@@ -57,10 +56,7 @@ class SignalPreprocessor:
 
         # Moving average (window size 50, output same length)
         if self.pre_processor_variant == 1:
-            if self.down_sample:
-                window_size = 10
-            else:
-                window_size = 50
+            window_size = 10
             window = np.ones(window_size) / window_size
             x = np.convolve(x, window, mode='same')
 
