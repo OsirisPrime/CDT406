@@ -50,7 +50,6 @@ class LSTM:
 
         # Build the network
         net = []
-        # net.append(layers.Input(shape=(input_shape,)))
         net.append(layers.Input(shape=(input_shape,1)))
 
         # net.append(layers.Dense(units_dense1, activation=act_dense))

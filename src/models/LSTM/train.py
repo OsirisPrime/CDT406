@@ -23,8 +23,8 @@ def get_training_data(pre_processor_variant=1):
                                        order=7,
                                        down_sample=True)
 
-    window_length = 200 # * 5  # 200 ms × 5 kHz
-    overlap = 50 # * 5
+    window_length = 200 * 5  # 200 ms × 5 kHz
+    overlap = 50 * 5
     seg_train = segment_data(raw_train, window_length=window_length, overlap=overlap)
     seg_val = segment_data(raw_val, window_length=window_length, overlap=overlap)
 
