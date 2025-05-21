@@ -66,21 +66,14 @@ class ANNHyperModel(kt.HyperModel):
         activation = hp.Choice('activation', ['tanh', 'relu', 'sigmoid'])
         hp.Choice('batch_size', [32, 64, 128, 256, 512])
 
-        # New hyperparameters specific to the ANN architecture
-        units_dense1 = hp.Int('units_dense1', 16, 128, step=16)
-        units_dense2 = hp.Int('units_dense2', 8, 64, step=8)
-        units_dense3 = hp.Int('units_dense3', 16, 128, step=16)
-
         model = ANN(input_shape=self.input_shape,
                     num_classes=self.num_classes,
                     learning_rate=lr,
                     optimizer=opt,
                     normalization=norm,
                     dropout=drop,
-                    activation=activation,
-                    units_dense1=units_dense1,
-                    units_dense2=units_dense2,
-                    units_dense3=units_dense3).get_model()
+                    activation=activation
+                    ).get_model()
         return model
 
     def fit(self, hp, model, X, y, validation_data, **kwargs):
@@ -166,6 +159,3 @@ if __name__ == "__main__":
         print(f"batch_size              = {best_hp.get('batch_size')}")
         print(f"dropout                 = {best_hp.get('dropout')}")
         print(f"activation              = {best_hp.get('activation')}")
-        print(f"units_dense1            = {best_hp.get('units_dense1')}")
-        print(f"units_dense2            = {best_hp.get('units_dense2')}")
-        print(f"units_dense3            = {best_hp.get('units_dense3')}")
