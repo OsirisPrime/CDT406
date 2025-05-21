@@ -55,8 +55,8 @@ class LSTM_STFTHyperModel(kt.HyperModel):
         norm  = hp.Choice('normalization', ['none', 'batch', 'layer'])
         drop  = hp.Float('dropout', 0.0, 0.5, step=0.1)
         rdrop = hp.Float('recurrent_dropout', 0.0, 0.5, step=0.1)
-        stft_fl = hp.Int('stft_frame_length', 32, 256)
-        stft_fs = hp.Int('stft_frame_step', 8, 31)
+        stft_fl = hp.Int('stft_frame_length', 26, 64)
+        stft_fs = hp.Int('stft_frame_step', 8, 25)
         hp.Choice('batch_size', [32, 64, 128, 256, 512])
 
         model = LSTM_STFT(input_shape=self.input_shape,

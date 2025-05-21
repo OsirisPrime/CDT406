@@ -43,15 +43,6 @@ class LSTM_STFT:
             input_shape (int): The number of time steps in the input window.
             num_classes (int): Number of classes for classification.
         """
-        self.frame_length = stft_frame_length
-        self.frame_step = stft_frame_step
-
-        def stft_layer(x):
-            # x shape: (batch, time)
-            stft = tf.signal.stft(x, frame_length=self.frame_length, frame_step=self.frame_step)
-            spectrogram = tf.abs(stft)
-            return spectrogram
-
         # Build the network
         net = []
         net.append(layers.Input(shape=(input_shape,)))
