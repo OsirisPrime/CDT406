@@ -20,7 +20,8 @@ def get_training_data(pre_processor_variant=1):
                                        low_freq=20.0,
                                        high_freq=500.0,
                                        fs=5000.0,
-                                       order=7)
+                                       order=7,
+                                       down_sample=True)
 
     window_length = 200 * 5  # 200 ms × 5 kHz
     overlap = 50 * 5
@@ -98,8 +99,8 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
         recurrent_dropout=best_hp['recurrent_dropout'],
         act_dense=best_hp['act_dense'],
         act_lstm=best_hp['act_lstm'],
-        stft_frame_length=best_hp['stft_frame_length'],
-        stft_frame_step=best_hp['stft_frame_step']
+        #stft_frame_length=best_hp['stft_frame_length'],
+        #stft_frame_step=best_hp['stft_frame_step']
     ).get_model()
 
     stop_early = tf.keras.callbacks.EarlyStopping(
