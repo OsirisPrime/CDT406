@@ -55,7 +55,7 @@ class LSTM_STFT:
         # Build the network
         net = []
         net.append(layers.Input(shape=(input_shape,)))
-        net.append(layers.Reshape((1, -1)))
+        # net.append(layers.Reshape((1, -1)))
 
         net.append(STFTLayer(
             frame_length=stft_frame_length,
@@ -63,7 +63,7 @@ class LSTM_STFT:
             name='stft'
         ))
 
-        net.append(layers.Reshape((1, -1)))
+        # net.append(layers.Reshape((1, -1)))
 
         # optional normalisation
         if normalization == 'batch':
