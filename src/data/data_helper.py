@@ -28,7 +28,8 @@ def get_raw_data_as_dataframe(validation_subjects=(1, 2)):
     expected_columns = ["time", "measurement", "label"]
 
     # base_dir = Path(get_processed_data_dir()) / "relabeled_old_dataset"
-    base_dir = Path(get_processed_data_dir()) / "all_final_labeled_data"
+    # base_dir = Path(get_processed_data_dir()) / "all_final_labeled_data"
+    base_dir = Path(get_processed_data_dir()) / "firm_final_labeled_data"
     csv_files = base_dir.rglob("*.csv")
 
     train_frames, val_frames = [], []
