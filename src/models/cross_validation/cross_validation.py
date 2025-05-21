@@ -37,7 +37,7 @@ EARLY_STOP = tf.keras.callbacks.EarlyStopping(
     monitor="val_f1_score", mode="max", patience=5, restore_best_weights=True
 )
 EPOCHS = 25
-SUBJECT_IDS = [1,2,3,4,5,6,7,8,9]
+SUBJECT_IDS = [1,2,3,4,5,6,7,8,9,10,11]
 
 def get_training_data_for_subject(
     val_subject: int, preproc_variant: int
