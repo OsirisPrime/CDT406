@@ -91,13 +91,11 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
     model = LSTM(
         input_shape=input_shape,
         num_classes=num_classes,
-        #learning_rate=best_hp['learning_rate'],
-        #optimizer=best_hp['optimizer'],
-        #normalization=best_hp['normalization'],
-        #dropout=best_hp['dropout'],
-        #recurrent_dropout=best_hp['recurrent_dropout'],
-        #act_dense=best_hp['act_dense'],
-        #act_lstm=best_hp['act_lstm']
+        learning_rate=best_hp['learning_rate'],
+        optimizer=best_hp['optimizer'],
+        normalization=best_hp['normalization'],
+        dropout=best_hp['dropout'],
+        recurrent_dropout=best_hp['recurrent_dropout']
     ).get_model()
 
     stop_early = tf.keras.callbacks.EarlyStopping(

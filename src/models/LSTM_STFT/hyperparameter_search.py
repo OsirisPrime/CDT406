@@ -55,8 +55,6 @@ class LSTM_STFTHyperModel(kt.HyperModel):
         norm  = hp.Choice('normalization', ['none', 'batch', 'layer'])
         drop  = hp.Float('dropout', 0.0, 0.5, step=0.1)
         rdrop = hp.Float('recurrent_dropout', 0.0, 0.5, step=0.1)
-        ad    = hp.Choice('act_dense', ['tanh', 'relu'])
-        al    = hp.Choice('act_lstm',  ['tanh', 'relu'])
         stft_fl = hp.Int('stft_frame_length', 32, 256)
         stft_fs = hp.Int('stft_frame_step', 8, 31)
         hp.Choice('batch_size', [32, 64, 128, 256, 512])
@@ -68,8 +66,6 @@ class LSTM_STFTHyperModel(kt.HyperModel):
                      normalization=norm,
                      dropout=drop,
                      recurrent_dropout=rdrop,
-                     act_dense=ad,
-                     act_lstm=al,
                      stft_frame_length=stft_fl,
                      stft_frame_step=stft_fs).get_model()
         return model
@@ -127,8 +123,8 @@ if __name__ == "__main__":
         tuner.search(
             X_train, y_train,
             validation_data=(X_val, y_val),
-            epochs=25,
-            callbacks=[stop_early],
+            epochs=50,
+            # callbacks=[stop_early],
             verbose=2
         )
 
@@ -155,5 +151,5 @@ if __name__ == "__main__":
         print(f"batch_size              = {best_hp.get('batch_size')}")
         print(f"dropout                 = {best_hp.get('dropout')}")
         print(f"recurrent_dropout       = {best_hp.get('recurrent_dropout')}")
-        print(f"act_dense               = {best_hp.get('act_dense')}")
-        print(f"act_lstm                = {best_hp.get('act_lstm')}")
+        print(f"stft_frame_length       = {best_hp.get('stft_frame_length')}")
+        print(f"stft_frame_step         = {best_hp.get('stft_frame_step')}")

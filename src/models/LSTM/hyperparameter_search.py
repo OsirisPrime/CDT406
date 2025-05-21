@@ -123,8 +123,8 @@ if __name__ == "__main__":
         tuner.search(
             X_train, y_train,
             validation_data=(X_val, y_val),
-            epochs=25,
-            callbacks=[stop_early],
+            epochs=50,
+            # callbacks=[stop_early],
             verbose=2
         )
 
