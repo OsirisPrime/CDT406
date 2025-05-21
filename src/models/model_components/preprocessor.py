@@ -4,7 +4,15 @@ import numpy as np
 from scipy.signal import butter, sosfiltfilt
 
 class SignalPreprocessor:
-    def __init__(self, pre_processor_variant = 1, low_freq=20., high_freq=500., fs=5000, order=7, variance=1.0):
+    def __init__(self,
+                 pre_processor_variant = 1,
+                 low_freq=20.,
+                 high_freq=500.,
+                 fs=5000, order=7,
+                 variance=1.0,
+                 down_sample=True
+                 ):
+
         self.low_freq = low_freq
         self.high_freq = high_freq
         self.fs = fs
@@ -12,6 +20,7 @@ class SignalPreprocessor:
         self.sos = self.butter_bandpass()
         self.variance = variance  # Default is 1, will be set in calibrate
         self.pre_processor_variant = pre_processor_variant
+        self.down_sample = down_sample
 
     def butter_bandpass(self):
         nyq = 0.5 * self.fs
@@ -38,13 +47,20 @@ class SignalPreprocessor:
         # Bandpass filter
         x = self.butter_bandpass_filter(x)
 
+        # Down sample from 5000 Hz to 1000 Hz
+        if self.down_sample:
+            x = signal.resample(x, int(1000 * 1000 / 5000))
+
         # Absolute value
         if self.pre_processor_variant == 1 or self.pre_processor_variant == 2:
             x = np.abs(x)
 
         # Moving average (window size 50, output same length)
         if self.pre_processor_variant == 1:
-            window_size = 50
+            if self.down_sample:
+                window_size = 10
+            else:
+                window_size = 50
             window = np.ones(window_size) / window_size
             x = np.convolve(x, window, mode='same')
 
