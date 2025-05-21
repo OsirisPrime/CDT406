@@ -57,7 +57,7 @@ class LSTM_STFT_Dense:
         # Build the network
         net = []
         net.append(layers.Input(shape=(input_shape,)))
-        net.append(layers.Reshape((1, -1)))
+        # net.append(layers.Reshape((1, -1)))
 
         net.append(STFTLayer(
             frame_length=stft_frame_length,
@@ -65,7 +65,7 @@ class LSTM_STFT_Dense:
             name='stft'
         ))
 
-        net.append(layers.Reshape((1, -1)))
+        # net.append(layers.Reshape((1, -1)))
 
         net.append(layers.Dense(units_dense1, activation=act_dense))
 
