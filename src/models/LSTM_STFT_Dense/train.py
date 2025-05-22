@@ -14,7 +14,7 @@ from src.utils.path_utils import get_models_dir
 # -------------------------- Data loading & model_components --------------------------
 
 def get_training_data(pre_processor_variant=1):
-    raw_train, raw_val = get_raw_data_as_dataframe(validation_subjects=(1, 2))
+    raw_train, raw_val = get_raw_data_as_dataframe(validation_subjects=(10,11))
 
     pre_processor = SignalPreprocessor(pre_processor_variant=pre_processor_variant,
                                        low_freq=20.0,

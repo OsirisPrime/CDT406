@@ -8,13 +8,13 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_s
 
 from src.data.data_helper import get_raw_data_as_dataframe, segment_data
 from src.models.model_components.preprocessor import SignalPreprocessor
-from src.models.ANN_STFT.ANN_STFT import ANN_STFT  # Import ANN_STFT instead of LSTM_STFT
+from src.models.ANN_STFT.ANN_STFT import ANN_STFT
 from src.utils.path_utils import get_models_dir
 
 # -------------------------- Data loading & preprocessing --------------------------
 
 def get_training_data(pre_processor_variant=1):
-    raw_train, raw_val = get_raw_data_as_dataframe(validation_subjects=(1, 2))
+    raw_train, raw_val = get_raw_data_as_dataframe(validation_subjects=(10, 11))
 
     pre_processor = SignalPreprocessor(pre_processor_variant=pre_processor_variant,
                                        low_freq=20.0,
@@ -113,7 +113,7 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
         validation_data=(X_val, y_val),
         batch_size=int(best_hp['batch_size']),
         epochs=50,
-        callbacks=[stop_early],  # Uncommented early stopping callback
+        # callbacks=[stop_early],  # Uncommented early stopping callback
         verbose=2
     )
 

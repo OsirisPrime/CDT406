@@ -2,7 +2,7 @@ import os
 import glob
 import tensorflow as tf
 from src.utils.path_utils import get_models_dir
-from stft_layer import STFTLayer
+from src.models.model_components.stft_layer import STFTLayer
 
 if __name__ == "__main__":
     # Get list of all .keras models in the models directory

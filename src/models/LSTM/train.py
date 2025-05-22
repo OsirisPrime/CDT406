@@ -14,7 +14,7 @@ from src.utils.path_utils import get_models_dir
 # -------------------------- Data loading & model_components --------------------------
 
 def get_training_data(pre_processor_variant=1):
-    raw_train, raw_val = get_raw_data_as_dataframe(validation_subjects=(1, 2))
+    raw_train, raw_val = get_raw_data_as_dataframe(validation_subjects=(10,11))
 
     pre_processor = SignalPreprocessor(pre_processor_variant=pre_processor_variant,
                                        low_freq=20.0,
@@ -108,7 +108,7 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
     model.fit(
         X_train, y_train,
         validation_data=(X_val, y_val),
-        batch_size=128, # int(best_hp['batch_size']),
+        batch_size=int(best_hp['batch_size']),
         epochs=50,
         # callbacks=[stop_early],
         verbose=1

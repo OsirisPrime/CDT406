@@ -8,14 +8,14 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_s
 
 from src.data.data_helper import get_raw_data_as_dataframe, segment_data
 from src.models.model_components.preprocessor import SignalPreprocessor
-from src.models.ANN.ANN import ANN  # Import ANN instead of LSTM
+from src.models.ANN.ANN import ANN
 from src.utils.path_utils import get_models_dir
 
 
 # -------------------------- Data loading & preprocessing --------------------------
 
 def get_training_data(pre_processor_variant=1):
-    raw_train, raw_val = get_raw_data_as_dataframe(validation_subjects=(1, 2))
+    raw_train, raw_val = get_raw_data_as_dataframe(validation_subjects=(10,11))
 
     pre_processor = SignalPreprocessor(pre_processor_variant=pre_processor_variant,
                                        low_freq=20.0,
@@ -103,11 +103,7 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
         learning_rate=best_hp['learning_rate'],
         optimizer=best_hp['optimizer'],
         normalization=best_hp['normalization'],
-        dropout=best_hp['dropout'],
-        activation=best_hp.get('activation', 'relu'),  # Default to relu if not specified
-        units_dense1=best_hp.get('units_dense1', 32),  # Default values if not in hyperparams
-        units_dense2=best_hp.get('units_dense2', 16),
-        units_dense3=best_hp.get('units_dense3', 32)
+        dropout=best_hp['dropout']
     ).get_model()
 
     stop_early = tf.keras.callbacks.EarlyStopping(
@@ -120,9 +116,9 @@ def build_and_train_best_model(input_shape, num_classes, best_hp, X_train, y_tra
     model.fit(
         X_train, y_train,
         validation_data=(X_val, y_val),
-        batch_size=128,  # int(best_hp['batch_size']),
+        batch_size=int(best_hp['batch_size']),
         epochs=50,
-        callbacks=[stop_early],
+        # callbacks=[stop_early],
         verbose=1
     )
 
