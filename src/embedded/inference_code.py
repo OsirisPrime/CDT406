@@ -31,7 +31,7 @@ print(f"- {STRIDE} sample stride ({STRIDE_DURATION_MS} ms)\n")
 
 pre_processor = SignalPreprocessor(pre_processor_variant=pre_processor_variant,
                                                low_freq=20.0,
-                                               high_freq=500.0,
+                                               high_freq=499.0,
                                                fs=SAMPLE_RATE_HZ,
                                                order=7,
                                                down_sample=False,

@@ -18,7 +18,7 @@ times = []
 inference_times = []
 
 def exit_gracefully():
-    log = open('/home/EMG3/setup/model.log', 'w')
+    log = open('/home/debian/Inference/model.log', 'w')
     log.write('Waiting\n')
     log.write(str(times))
     log.write('\nInference\n')
@@ -38,7 +38,7 @@ step_size = 50
 
 preprocessor = SignalPreprocessor(pre_processor_variant=pre_processor_variant,
                                                low_freq=20.0,
-                                               high_freq=500.0,
+                                               high_freq=499.0,
                                                fs=sample_rate,
                                                order=7,
                                                down_sample=False,
@@ -52,8 +52,8 @@ number_of_states = 4
 
 in_struct_fmt = f'<{buffer_size * 2}B'
 out_struct_fmt = f'<{buffer_size * 2}B{number_of_states}f'
-in_pipe = '/home/EMG3/setup/adc_pipe'
-out_pipe = '/home/EMG3/setup/inference_pipe'
+in_pipe = '/home/debian/Inference/adc_pipe'
+out_pipe = '/home/debian/Inference/inference_pipe'
 
 adc_in = open(in_pipe, "rb")
 inference_out = open(out_pipe, "wb")
@@ -89,7 +89,7 @@ try:
                 inference_out.write(packed)
                 inference_out.flush()
             except IOError:
-                log = open('/home/EMG3/setup/model.log', 'w')
+                log = open('/home/debian/Inference/model.log', 'w')
                 log.write('Waiting\n')
                 log.write(str(times))
                 log.write('\nInference\n')
