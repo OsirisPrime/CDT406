@@ -36,26 +36,8 @@ algorithms, hardware specifications, and testing outcomes. This includes:
   - Demonstration of AI algorithms' capabilities in a controlled environment
 
 # **Useful stuff**
-## **Setup** 
-Based on how I set this up using Anaconda as Python interpreter. Will assume Anaconda installed and working. 
-
-Step 1: Open command line inside project folder
-
-Step 2: Install requirement.txt:
-```
-pip install -r requirements.txt
-```
-
-To verify that it worked, run: 
-```
-python .\src\models\example_ANN.py
-```
-This will give 2 warnings and then output `TensorFlow version: 2.19.0` if everything has been installed correctly. 
-
 ## **Folder Structure**
-`/data/`: Contains all data. Raw data placed in `/data/raw/` and processed data in `/data/processed/`
-
-`/logs/`: Contains any logs, such as training data, loss, validation stuff like this. Useful to have if we want to present graphs of the training in the final report. 
+`/data/`: Contains all data. Raw data should be placed in `/data/raw/` and processed data in `/data/processed/`. 
 
 `/models/`: Here will any models that has been trained, are getting trained, be saved. 
 
@@ -63,10 +45,10 @@ This will give 2 warnings and then output `TensorFlow version: 2.19.0` if everyt
 
 `/src/`: Main folder for any code. 
 - `/src/data/`: Any coded related to the data. This includes loading and saving data, pre-processing and so on. 
+- `/src/embedded/`: Any code related to the embedded platform goes here. This includes code for the BeagleBone Black card as well as convertion to LiteTF.
 - `/src/models/`: Any code related to creating, training and evaluating models goes here. 
 - `/src/utils/`: Any code related to utility goes here. This includes path handling and other quality of life stuff. 
 - `/src/visualizations/`: Any code related to plotting or showing any kind of data goes here. 
 
-Feel free to add more folders as needed, just make sure to document them! 
 
 [1] https://mdh.diva-portal.org/smash/record.jsf?pid=diva2%3A946321&dswid=-6351
