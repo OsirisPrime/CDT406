@@ -2,3 +2,5 @@
 .idea
 models/
 /data/
+/data/processed/
+/data/raw/
