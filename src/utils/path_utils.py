@@ -48,3 +48,6 @@ def get_models_dir() -> Path:
     return get_project_root() / "models"
 
 
+def get_models_LOCKED_dir() -> Path:
+    """Return the path to the saved models directory."""
+    return get_project_root() / "models_LOCKED"
