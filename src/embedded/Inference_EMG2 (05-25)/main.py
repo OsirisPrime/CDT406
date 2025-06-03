@@ -38,22 +38,16 @@ if __name__ == '__main__':
           print("Waiting for new data...")
           time.sleep(0.02)  # Give time for sensor data to arrive
           continue
-
         preprocessing_time = time.time()
 
         # window shape should be (1, 200, 1)
-        output_state = model.get_output_state(window)
-
-
-
         output_state = model.get_output_state(window)  # Original input processing
         print(f"Model Output: {np.round(output_state * 100, 2)}%")
 
         # Test with random input
-        test_input = np.random.uniform(0.0, 1.8, (1, 200, 1)).astype(np.float32) # Change to (1, 200) for all other than LSTM
-        test_output = model.get_output_state(test_input)
-        print(f"Test Output: {np.round(test_output * 100, 2)}%")
-
+        #test_input = np.random.uniform(0.0, 1.8, (1, 200, 1)).astype(np.float32) # Change to (1, 200) for all other than LSTM
+        #test_output = model.get_output_state(test_input)
+        #print(f"Test Output: {np.round(test_output * 100, 2)}%")
 
         end_time = time.time()
 
